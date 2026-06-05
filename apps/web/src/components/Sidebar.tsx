@@ -7,19 +7,19 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
-  { path: '/canvases', label: 'Canvas', icon: LayoutGrid },
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/objetivos', label: 'Objetivos', icon: Target },
-  { path: '/indicadores', label: 'Indicadores', icon: BarChart2 },
-  { path: '/vendas', label: 'Vendas', icon: ShoppingCart },
-  { path: '/despesas', label: 'Despesas', icon: Receipt },
-  { path: '/devolucoes', label: 'Devoluções', icon: RefreshCcw },
-  { path: '/dre', label: 'DRE', icon: FileText },
-  { path: '/alertas', label: 'Alertas', icon: Bell },
-  { path: '/decisoes', label: 'Decisões', icon: Lightbulb },
-  { path: '/agentes', label: 'Agentes', icon: Bot },
-  { path: '/automacoes', label: 'Automações', icon: Zap },
-  { path: '/configuracoes', label: 'Configurações', icon: Settings },
+  { path: '/canvases',      label: 'Canvas',        icon: LayoutGrid,      highlight: true },
+  { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard  },
+  { path: '/objetivos',     label: 'Objetivos',     icon: Target           },
+  { path: '/indicadores',   label: 'Indicadores',   icon: BarChart2        },
+  { path: '/vendas',        label: 'Vendas',         icon: ShoppingCart     },
+  { path: '/despesas',      label: 'Despesas',       icon: Receipt          },
+  { path: '/devolucoes',    label: 'Devoluções',    icon: RefreshCcw       },
+  { path: '/dre',           label: 'DRE',            icon: FileText         },
+  { path: '/alertas',       label: 'Alertas',        icon: Bell             },
+  { path: '/decisoes',      label: 'Decisões',      icon: Lightbulb        },
+  { path: '/agentes',       label: 'Agentes IA',     icon: Bot              },
+  { path: '/automacoes',    label: 'Automações',    icon: Zap              },
+  { path: '/configuracoes', label: 'Configurações', icon: Settings         },
 ]
 
 interface SidebarProps {
@@ -34,58 +34,59 @@ export default function Sidebar({ onClose }: SidebarProps) {
 
   return (
     <aside className="flex flex-col h-full bg-white border-r border-slate-100 w-60">
+      {/* Logo */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <TrendingUp size={16} className="text-white" />
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm shadow-blue-200"
+            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' }}>
+            <TrendingUp size={17} className="text-white" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-slate-900">Dashboard</p>
-            <p className="text-xs text-slate-400">Executivo</p>
+            <p className="text-sm font-bold text-slate-900 leading-tight">CHUA</p>
+            <p className="text-[11px] text-slate-400 leading-tight">Dashboard Executivo</p>
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1 rounded hover:bg-slate-100 lg:hidden" aria-label="Fechar menu">
-            <X size={18} className="text-slate-500" />
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 lg:hidden" aria-label="Fechar menu">
+            <X size={16} className="text-slate-500" />
           </button>
         )}
       </div>
 
-      <div className="px-3 py-2 border-b border-slate-100">
-        <p className="text-xs font-medium text-slate-400 px-3 py-1 uppercase tracking-wider">Empresa CHUA</p>
-      </div>
-
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-        {navItems.map(({ path, label, icon: Icon }) => (
+        {navItems.map(({ path, label, icon: Icon, highlight }) => (
           <NavLink
             key={path}
             to={path}
             onClick={onClose}
             className={({ isActive }) =>
-              `sidebar-link ${isActive ? 'active' : ''}`
+              `sidebar-link ${isActive ? 'active' : ''} ${highlight && !isActive ? 'text-blue-600 font-semibold hover:bg-blue-50' : ''}`
             }
           >
-            <Icon size={18} />
+            <Icon size={17} />
             <span>{label}</span>
           </NavLink>
         ))}
       </nav>
 
+      {/* User */}
       <div className="px-3 py-3 border-t border-slate-100">
-        <div className="flex items-center gap-3 px-3 py-2 mb-1">
-          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-            <span className="text-xs font-semibold text-blue-700">{initials}</span>
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 mb-1">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' }}>
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 truncate">{displayName}</p>
-            <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+            <p className="text-sm font-semibold text-slate-800 truncate leading-tight">{displayName}</p>
+            <p className="text-[11px] text-slate-400 truncate leading-tight">{user?.email}</p>
           </div>
         </div>
         <button
           onClick={signOut}
-          className="sidebar-link w-full text-red-500 hover:bg-red-50 hover:text-red-600"
+          className="sidebar-link w-full text-slate-500 hover:text-red-600 hover:bg-red-50"
         >
-          <LogOut size={18} />
+          <LogOut size={16} />
           <span>Sair</span>
         </button>
       </div>
