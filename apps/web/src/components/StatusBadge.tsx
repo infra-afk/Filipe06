@@ -13,7 +13,7 @@ const statusConfig: Record<Status, { label: string; className: string }> = {
   ativo: { label: 'Ativo', className: 'bg-green-100 text-green-700' },
   inativo: { label: 'Inativo', className: 'bg-slate-100 text-slate-600' },
   aprovada: { label: 'Aprovada', className: 'bg-blue-100 text-blue-700' },
-  em_andamento: { label: 'Em andamento', className: 'bg-purple-100 text-purple-700' },
+  em_andamento: { label: 'Em andamento', className: 'bg-teal-100 text-teal-700' },
 }
 
 interface StatusBadgeProps {

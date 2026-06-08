@@ -6,15 +6,16 @@ interface StatCardProps {
   change?: number
   changeLabel?: string
   icon?: React.ReactNode
-  color?: 'blue' | 'green' | 'yellow' | 'red' | 'purple'
+  color?: 'blue' | 'green' | 'yellow' | 'red' | 'teal' | 'purple'
 }
 
 const colorMap = {
-  blue:   { bg: 'bg-blue-50',   text: 'text-blue-600',   bar: '#2563eb' },
-  green:  { bg: 'bg-green-50',  text: 'text-green-600',  bar: '#16a34a' },
-  yellow: { bg: 'bg-amber-50',  text: 'text-amber-600',  bar: '#f59e0b' },
-  red:    { bg: 'bg-red-50',    text: 'text-red-600',    bar: '#dc2626' },
-  purple: { bg: 'bg-purple-50', text: 'text-purple-600', bar: '#9333ea' },
+  blue:   { bg: 'bg-blue-50',  text: 'text-blue-700',  bar: '#1d4ed8' },
+  green:  { bg: 'bg-green-50', text: 'text-green-700', bar: '#15803d' },
+  yellow: { bg: 'bg-amber-50', text: 'text-amber-600', bar: '#f59e0b' },
+  red:    { bg: 'bg-red-50',   text: 'text-red-600',   bar: '#dc2626' },
+  teal:   { bg: 'bg-teal-50',  text: 'text-teal-700',  bar: '#0f766e' },
+  purple: { bg: 'bg-teal-50',  text: 'text-teal-700',  bar: '#0f766e' },
 }
 
 export default function StatCard({ title, value, change, changeLabel, icon, color = 'blue' }: StatCardProps) {

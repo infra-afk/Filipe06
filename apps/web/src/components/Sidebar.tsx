@@ -62,7 +62,7 @@ export default function Sidebar({ onClose }: SidebarProps) {
       <div className="px-3 py-3 border-t border-slate-100">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-50 mb-1">
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' }}>
+            style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%)' }}>
             {initials}
           </div>
           <div className="flex-1 min-w-0">

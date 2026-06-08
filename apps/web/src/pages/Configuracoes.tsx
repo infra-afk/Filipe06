@@ -134,7 +134,7 @@ function PermissoesModal({ usuario, onToggle, onClose }: {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}
+              style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}
             >
               {usuario.nome.slice(0, 2).toUpperCase()}
             </div>
@@ -288,7 +288,7 @@ function SecaoUsuarios() {
                 {/* Avatar */}
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                  style={{ background: u.ativo ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#94a3b8' }}
+                  style={{ background: u.ativo ? 'linear-gradient(135deg,#1d4ed8,#0f766e)' : '#94a3b8' }}
                 >
                   {u.nome.slice(0, 2).toUpperCase()}
                 </div>
@@ -663,7 +663,7 @@ function SecaoNotificacoes() {
               onClick={enviar}
               disabled={!titulo.trim() || !mensagem.trim()}
               className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-md disabled:opacity-40 transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}
+              style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}
             >
               <Send size={14} /> Enviar notificação
             </button>
@@ -773,7 +773,7 @@ function SecaoPerfil() {
       <SectionCard title="Informações Pessoais" icon={User}>
         <div className="flex items-center gap-5 mb-6 pb-6 border-b border-slate-100">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-bold text-white flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}>
+            style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}>
             {initials}
           </div>
           <div>

@@ -55,7 +55,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </button>
 
         <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-          style={{ background: 'linear-gradient(135deg, #2563eb 0%, #7c3aed 100%)' }}>
+          style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #0f766e 100%)' }}>
           {initials}
         </div>
       </div>

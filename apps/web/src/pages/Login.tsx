@@ -28,7 +28,7 @@ export default function Login() {
         <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-20"
           style={{ background: 'radial-gradient(circle, #2563eb 0%, transparent 70%)' }} />
         <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #7c3aed 0%, transparent 70%)' }} />
+          style={{ background: 'radial-gradient(circle, #0f766e 0%, transparent 70%)' }} />
       </div>
 
       <div className="w-full max-w-sm relative">
