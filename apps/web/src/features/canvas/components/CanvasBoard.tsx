@@ -2,7 +2,8 @@ import { useState, useMemo } from 'react'
 import {
   Plus, X, Target, BarChart2, Database, Users, Lightbulb,
   PieChart, Bell, Bot, Zap, FileText, ChevronDown, ChevronUp,
-  TrendingUp, TrendingDown, Sparkles, ArrowRight, CheckCircle2
+  TrendingUp, TrendingDown, Sparkles, ArrowRight, CheckCircle2,
+  SlidersHorizontal, Calendar, Building2, ArrowLeftRight, Layers,
 } from 'lucide-react'
 import type { Canvas } from '../types'
 
@@ -601,6 +602,236 @@ function PlanoOperacional({ canvas }: { canvas: Canvas }) {
   )
 }
 
+// ─── Filtros ──────────────────────────────────────────────────────────────────
+
+const PERIODO_OPCOES = [
+  'Últimos 30 dias', 'Últimos 90 dias', 'Último trimestre',
+  'Último semestre', 'Último ano', 'Ano atual', 'Personalizado',
+]
+const DEPARTAMENTO_OPCOES = [
+  'Todos', 'Financeiro', 'Comercial', 'Operações', 'RH', 'TI', 'Marketing', 'Logística',
+]
+const GRANULARIDADE_OPCOES = ['Diário', 'Semanal', 'Mensal', 'Trimestral', 'Anual']
+const COMPARACAO_OPCOES = [
+  'Sem comparação', 'Período anterior',
+  'Mesmo período do ano passado', 'Média dos últimos 3 meses',
+]
+
+const FILTRO_KEYS = ['periodo', 'departamento', 'granularidade', 'comparacao'] as const
+type FiltroKey = typeof FILTRO_KEYS[number]
+
+interface FiltrosState {
+  periodo: string
+  departamento: string[]
+  granularidade: string
+  comparacao: string
+  dataInicio: string
+  dataFim: string
+}
+
+const FILTROS_DEFAULT: FiltrosState = {
+  periodo: 'Último trimestre',
+  departamento: ['Todos'],
+  granularidade: 'Mensal',
+  comparacao: 'Período anterior',
+  dataInicio: '',
+  dataFim: '',
+}
+
+function buildFiltrosFromItems(items: { title: string; description: string | null }[]): FiltrosState {
+  const state = { ...FILTROS_DEFAULT }
+  for (const item of items) {
+    if (item.title === 'periodo') state.periodo = item.description || FILTROS_DEFAULT.periodo
+    if (item.title === 'departamento') state.departamento = item.description ? item.description.split('|') : FILTROS_DEFAULT.departamento
+    if (item.title === 'granularidade') state.granularidade = item.description || FILTROS_DEFAULT.granularidade
+    if (item.title === 'comparacao') state.comparacao = item.description || FILTROS_DEFAULT.comparacao
+    if (item.title === 'dataInicio') state.dataInicio = item.description || ''
+    if (item.title === 'dataFim') state.dataFim = item.description || ''
+  }
+  return state
+}
+
+function FiltrosCard({ canvas, onAddItem, onDeleteItem }: Props) {
+  const section = useSection(canvas, 'filtros')
+  const items = section?.items ?? []
+  const sectionId = section?.id ?? ''
+
+  const [local, setLocal] = useState<FiltrosState>(() => buildFiltrosFromItems(items))
+
+  function syncFiltro(key: FiltroKey | 'dataInicio' | 'dataFim', value: string) {
+    const existing = items.find(i => i.title === key)
+    if (existing) onDeleteItem(existing.id, sectionId)
+    if (value) onAddItem(sectionId, key, value)
+  }
+
+  function update(partial: Partial<FiltrosState>) {
+    const next = { ...local, ...partial }
+    setLocal(next)
+    for (const k of Object.keys(partial) as Array<keyof FiltrosState>) {
+      const v = partial[k]
+      syncFiltro(k as any, Array.isArray(v) ? v.join('|') : (v ?? ''))
+    }
+  }
+
+  function toggleDept(dept: string) {
+    let next: string[]
+    if (dept === 'Todos') {
+      next = ['Todos']
+    } else {
+      const sem = local.departamento.filter(d => d !== 'Todos')
+      next = sem.includes(dept)
+        ? sem.filter(d => d !== dept).length === 0 ? ['Todos'] : sem.filter(d => d !== dept)
+        : [...sem, dept]
+    }
+    update({ departamento: next })
+  }
+
+  if (!section) return null
+
+  const pillBase = 'text-xs px-3 py-1.5 rounded-lg text-left transition-all font-medium'
+
+  return (
+    <div
+      className="bg-white rounded-2xl border border-slate-100 overflow-hidden"
+      style={{ boxShadow: '0 2px 10px rgba(15,23,42,.06)', gridColumn: '1/-1' }}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-100 bg-slate-50">
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-slate-700">
+          <SlidersHorizontal size={16} color="white" />
+        </div>
+        <div>
+          <span className="text-sm font-bold text-slate-800">Filtros do Dashboard</span>
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            Configure os filtros padrão — o profissional que montar o dashboard usará estas definições
+          </p>
+        </div>
+      </div>
+
+      {/* 4 colunas */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-slate-100">
+
+        {/* 1. Período */}
+        <div className="p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Calendar size={13} className="text-blue-500" />
+            <p className="text-xs font-bold text-slate-700">Período</p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {PERIODO_OPCOES.map(opt => (
+              <button
+                key={opt}
+                onClick={() => update({ periodo: opt })}
+                className={`${pillBase} ${local.periodo === opt ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+          {local.periodo === 'Personalizado' && (
+            <div className="mt-2 flex flex-col gap-1">
+              <input
+                type="date"
+                value={local.dataInicio}
+                onChange={e => update({ dataInicio: e.target.value })}
+                className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-blue-300"
+                placeholder="Data início"
+              />
+              <input
+                type="date"
+                value={local.dataFim}
+                onChange={e => update({ dataFim: e.target.value })}
+                className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-blue-300"
+                placeholder="Data fim"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* 2. Departamento */}
+        <div className="p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Building2 size={13} className="text-violet-500" />
+            <p className="text-xs font-bold text-slate-700">Departamento</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {DEPARTAMENTO_OPCOES.map(dept => {
+              const active = local.departamento.includes(dept)
+              return (
+                <button
+                  key={dept}
+                  onClick={() => toggleDept(dept)}
+                  className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
+                    active
+                      ? 'bg-violet-600 text-white border-violet-600'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-600'
+                  }`}
+                >
+                  {dept}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* 3. Granularidade */}
+        <div className="p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <Layers size={13} className="text-teal-500" />
+            <p className="text-xs font-bold text-slate-700">Granularidade</p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {GRANULARIDADE_OPCOES.map(opt => (
+              <button
+                key={opt}
+                onClick={() => update({ granularidade: opt })}
+                className={`${pillBase} ${local.granularidade === opt ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 4. Comparação */}
+        <div className="p-4">
+          <div className="flex items-center gap-1.5 mb-3">
+            <ArrowLeftRight size={13} className="text-orange-500" />
+            <p className="text-xs font-bold text-slate-700">Comparação</p>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            {COMPARACAO_OPCOES.map(opt => (
+              <button
+                key={opt}
+                onClick={() => update({ comparacao: opt })}
+                className={`${pillBase} ${local.comparacao === opt ? 'bg-orange-500 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Resumo ativo */}
+      <div className="px-5 py-3 border-t border-slate-100 bg-slate-50 flex flex-wrap items-center gap-2">
+        <span className="text-[11px] text-slate-500 font-semibold">Configuração ativa:</span>
+        {[
+          { Icon: Calendar,       label: local.periodo === 'Personalizado' && local.dataInicio ? `${local.dataInicio} → ${local.dataFim || '...'}` : local.periodo, color: 'text-blue-600' },
+          { Icon: Building2,      label: local.departamento.join(', '), color: 'text-violet-600' },
+          { Icon: Layers,         label: local.granularidade, color: 'text-teal-600' },
+          { Icon: ArrowLeftRight, label: local.comparacao, color: 'text-orange-500' },
+        ].map(({ Icon, label, color }, i) => (
+          <span key={i} className="flex items-center gap-1 text-[11px] bg-white border border-slate-200 px-2.5 py-1 rounded-full text-slate-600">
+            <Icon size={10} className={color} />
+            {label}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── CanvasBoard (main) ────────────────────────────────────────────────────────
 
 export default function CanvasBoard({ canvas, onAddItem, onDeleteItem }: Props) {
@@ -646,6 +877,9 @@ export default function CanvasBoard({ canvas, onAddItem, onDeleteItem }: Props) 
 
       {/* Canvas grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3" style={{ gridAutoRows: 'auto' }}>
+
+        {/* Filtros (full) */}
+        <FiltrosCard canvas={canvas} onAddItem={onAddItem} onDeleteItem={onDeleteItem} />
 
         {/* Row 1: Objetivos (full) */}
         <ObjetivosSection canvas={canvas} onAddItem={onAddItem} onDeleteItem={onDeleteItem} />

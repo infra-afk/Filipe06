@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import {
-  LayoutDashboard, Target, BarChart2, ShoppingCart, Receipt,
+  Target, BarChart2, ShoppingCart, Receipt,
   RefreshCcw, FileText, Bell, Lightbulb, Bot, Zap, Settings,
   TrendingUp, LogOut, X, LayoutGrid,
 } from 'lucide-react'
@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { path: '/canvases',      label: 'Canvas',        icon: LayoutGrid,      highlight: true },
-  { path: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard  },
   { path: '/objetivos',     label: 'Objetivos',     icon: Target           },
   { path: '/indicadores',   label: 'Indicadores',   icon: BarChart2        },
   { path: '/vendas',        label: 'Vendas',         icon: ShoppingCart     },

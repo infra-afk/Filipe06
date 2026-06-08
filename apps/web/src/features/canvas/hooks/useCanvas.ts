@@ -20,7 +20,14 @@ export function useCanvas(canvasId: string) {
     setError(null)
     try {
       const data = await client.canvases.get(canvasId)
-      setCanvas(data)
+      const hasFiltros = data.sections?.some((s: any) => s.key === 'filtros')
+      if (!hasFiltros) {
+        await client.canvases.ensureSection(canvasId, { key: 'filtros', title: 'Filtros', position: 9 })
+        const updated = await client.canvases.get(canvasId)
+        setCanvas(updated)
+      } else {
+        setCanvas(data)
+      }
     } catch (e: any) {
       setError(e.message)
     } finally {

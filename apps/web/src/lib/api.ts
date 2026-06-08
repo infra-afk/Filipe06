@@ -10,6 +10,7 @@ const SECTIONS_SEED = [
   { key: 'alertas',     title: 'Alertas',     position: 6 },
   { key: 'agentes',     title: 'Agentes',     position: 7 },
   { key: 'automacoes',  title: 'Automações',  position: 8 },
+  { key: 'filtros',     title: 'Filtros',     position: 9 },
 ]
 
 async function getUser() {
@@ -102,6 +103,21 @@ export function api(_token?: string) {
       delete: async (id: string) => {
         const { error } = await supabase.from('canvases').delete().eq('id', id)
         if (error) throw new Error(error.message)
+      },
+
+      ensureSection: async (canvasId: string, s: { key: string; title: string; position: number }) => {
+        const { data: existing } = await supabase
+          .from('canvas_sections')
+          .select('id')
+          .eq('canvas_id', canvasId)
+          .eq('key', s.key)
+          .maybeSingle()
+        if (!existing) {
+          const { error } = await supabase
+            .from('canvas_sections')
+            .insert({ canvas_id: canvasId, key: s.key, title: s.title, position: s.position })
+          if (error) throw new Error(error.message)
+        }
       },
 
       createItem: async (canvasId: string, data: {
