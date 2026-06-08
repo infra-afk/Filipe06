@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Loader2, AlertCircle, Save } from 'lucide-react'
 import { useCanvas } from '../hooks/useCanvas'
-import CanvasGrid from '../components/CanvasGrid'
+import CanvasBoard from '../components/CanvasBoard'
 
 export default function CanvasPage() {
   const { canvasId } = useParams<{ canvasId: string }>()
@@ -69,12 +69,10 @@ export default function CanvasPage() {
         <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-sm text-red-700">{error}</div>
       )}
 
-      <CanvasGrid
+      <CanvasBoard
         canvas={canvas}
         onAddItem={(sectionId, title, description) => addItem(sectionId, title, description)}
-        onEditItem={(itemId, data) => editItem(itemId, data)}
         onDeleteItem={(itemId, sectionId) => removeItem(itemId, sectionId)}
-        onReorder={(sectionId, oldIndex, newIndex) => reorderInSection(sectionId, oldIndex, newIndex)}
       />
     </div>
   )
