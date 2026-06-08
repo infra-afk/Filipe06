@@ -16,6 +16,7 @@ import Automacoes from './pages/Automacoes'
 import Configuracoes from './pages/Configuracoes'
 import CanvasListPage from './features/canvas/pages/CanvasListPage'
 import CanvasPage from './features/canvas/pages/CanvasPage'
+import CanvasOperacional from './pages/CanvasOperacional'
 import { Loader2 } from 'lucide-react'
 
 function AppRoutes() {
@@ -57,7 +58,7 @@ function AppRoutes() {
           <Route path="/agentes" element={<Agentes />} />
           <Route path="/automacoes" element={<Automacoes />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
-          <Route path="/canvases" element={<CanvasListPage />} />
+          <Route path="/canvases" element={<CanvasOperacional />} />
           <Route path="/canvas/:canvasId" element={<CanvasPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
