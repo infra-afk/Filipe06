@@ -1,23 +1,11 @@
 import { NavLink } from 'react-router-dom'
 import {
-  Target, BarChart2, ShoppingCart, Receipt,
-  RefreshCcw, FileText, Bell, Lightbulb, Bot, Zap, Settings,
-  TrendingUp, LogOut, X, LayoutGrid,
+  Settings, TrendingUp, LogOut, X, LayoutGrid,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { path: '/canvases',      label: 'Canvas',        icon: LayoutGrid,      highlight: true },
-  { path: '/objetivos',     label: 'Objetivos',     icon: Target           },
-  { path: '/indicadores',   label: 'Indicadores',   icon: BarChart2        },
-  { path: '/vendas',        label: 'Vendas',         icon: ShoppingCart     },
-  { path: '/despesas',      label: 'Despesas',       icon: Receipt          },
-  { path: '/devolucoes',    label: 'Devoluções',    icon: RefreshCcw       },
-  { path: '/dre',           label: 'DRE',            icon: FileText         },
-  { path: '/alertas',       label: 'Alertas',        icon: Bell             },
-  { path: '/decisoes',      label: 'Decisões',      icon: Lightbulb        },
-  { path: '/agentes',       label: 'Agentes IA',     icon: Bot              },
-  { path: '/automacoes',    label: 'Automações',    icon: Zap              },
   { path: '/configuracoes', label: 'Configurações', icon: Settings         },
 ]
 
