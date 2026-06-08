@@ -78,7 +78,7 @@ const CAT_COLOR: Record<Categoria, string> = {
   Financeiro:   'bg-blue-100 text-blue-700',
   Comercial:    'bg-green-100 text-green-700',
   Operacional:  'bg-orange-100 text-orange-700',
-  RH:           'bg-purple-100 text-purple-700',
+  RH:           'bg-teal-100 text-teal-700',
   Marketing:    'bg-pink-100 text-pink-700',
   TI:           'bg-cyan-100 text-cyan-700',
   Outro:        'bg-slate-100 text-slate-600',

@@ -18,12 +18,12 @@ const ICONS: Record<string, React.ElementType> = {
 const ICON_COLORS: Record<string, { bg: string; text: string }> = {
   Target:      { bg: '#eff6ff', text: '#2563eb' },
   BarChart2:   { bg: '#f0fdf4', text: '#16a34a' },
-  Users:       { bg: '#fdf4ff', text: '#9333ea' },
+  Users:       { bg: '#f0fdfa', text: '#0f766e' },
   CheckSquare: { bg: '#fff7ed', text: '#ea580c' },
   Database:    { bg: '#f0f9ff', text: '#0284c7' },
   LineChart:   { bg: '#f0fdf4', text: '#059669' },
   Bell:        { bg: '#fefce8', text: '#ca8a04' },
-  Bot:         { bg: '#faf5ff', text: '#7c3aed' },
+  Bot:         { bg: '#eff6ff', text: '#1d4ed8' },
   Zap:         { bg: '#fff7ed', text: '#d97706' },
 }
 

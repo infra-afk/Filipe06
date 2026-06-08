@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Plus, X, Calendar, AlertCircle, Clock, CheckCircle2,
-  Inbox, Search, Code2, Eye, BarChart2,
+  Inbox, Search, Code2, Eye, MoreHorizontal, Edit2, Trash2,
+  ChevronDown, ChevronRight, Layers, SlidersHorizontal,
+  Zap, Flag, Star, PauseCircle, FileOutput, Tag, Lock,
+  GripVertical, Filter, Users,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Priority = 'Alta' | 'Média' | 'Baixa'
-type ColumnId = 'entrada' | 'analise' | 'desenvolvimento' | 'revisao' | 'concluido'
+type SwimlaneMode = 'none' | 'prioridade' | 'responsavel'
 
 interface KanbanCard {
   id: string
@@ -16,43 +19,84 @@ interface KanbanCard {
   dataEntrada: string
   prazo: string
   prioridade: Priority
-  coluna: ColumnId
+  coluna: string
   observacoes: string
+  tags: string[]
 }
 
-// ─── Configuração das colunas ─────────────────────────────────────────────────
-
-const COLUMNS: {
-  id: ColumnId
+interface KanbanColumn {
+  id: string
   label: string
-  icon: React.ElementType
-  gradient: string
   accent: string
-  soft: string
-}[] = [
-  { id: 'entrada',        label: 'Entrada',            icon: Inbox,        gradient: 'from-slate-600 to-slate-500',    accent: '#475569', soft: '#f1f5f9' },
-  { id: 'analise',        label: 'Em análise',          icon: Search,       gradient: 'from-blue-600 to-blue-500',      accent: '#2563eb', soft: '#eff6ff' },
-  { id: 'desenvolvimento',label: 'Em desenvolvimento',  icon: Code2,        gradient: 'from-violet-600 to-indigo-500',  accent: '#7c3aed', soft: '#f5f3ff' },
-  { id: 'revisao',        label: 'Em revisão',          icon: Eye,          gradient: 'from-amber-500 to-orange-500',   accent: '#f59e0b', soft: '#fffbeb' },
-  { id: 'concluido',      label: 'Concluído',           icon: CheckCircle2, gradient: 'from-emerald-600 to-teal-500',   accent: '#059669', soft: '#ecfdf5' },
-]
-
-const PRIORITY: Record<Priority, { bg: string; text: string; dot: string }> = {
-  Alta:  { bg: 'bg-red-50',    text: 'text-red-700',   dot: 'bg-red-500'   },
-  Média: { bg: 'bg-amber-50',  text: 'text-amber-700', dot: 'bg-amber-500' },
-  Baixa: { bg: 'bg-green-50',  text: 'text-green-700', dot: 'bg-green-600' },
+  gradient: string
+  iconKey: string
+  wip: number        // 0 = sem limite
+  collapsed: boolean
 }
 
-// ─── Dados de exemplo ─────────────────────────────────────────────────────────
+// ─── Ícones e cores disponíveis ───────────────────────────────────────────────
 
-const INITIAL_CARDS: KanbanCard[] = [
-  { id: '1', nome: 'Dashboard Comercial',   responsavel: 'Ana Lima',     dataEntrada: '2026-06-01', prazo: '2026-06-20', prioridade: 'Alta',  coluna: 'desenvolvimento', observacoes: 'Foco em meta vs realizado por vendedor' },
-  { id: '2', nome: 'Dashboard Financeiro',  responsavel: 'Carlos Melo',  dataEntrada: '2026-05-28', prazo: '2026-06-15', prioridade: 'Alta',  coluna: 'revisao',          observacoes: '' },
-  { id: '3', nome: 'Dashboard de RH',       responsavel: 'Marina Souza', dataEntrada: '2026-06-05', prazo: '2026-06-30', prioridade: 'Média', coluna: 'analise',          observacoes: 'Incluir turnover e absenteísmo' },
-  { id: '4', nome: 'Dashboard de Operações',responsavel: 'João Silva',   dataEntrada: '2026-06-07', prazo: '2026-07-10', prioridade: 'Baixa', coluna: 'entrada',          observacoes: '' },
-  { id: '5', nome: 'Dashboard Executivo',   responsavel: 'Filipe',       dataEntrada: '2026-05-10', prazo: '2026-05-30', prioridade: 'Alta',  coluna: 'concluido',        observacoes: 'Entregue na data combinada' },
-  { id: '6', nome: 'Dashboard de Estoque',  responsavel: 'Bia Alves',    dataEntrada: '2026-06-08', prazo: '2026-07-05', prioridade: 'Média', coluna: 'entrada',          observacoes: '' },
+const ICON_MAP: Record<string, React.ElementType> = {
+  inbox: Inbox, search: Search, code: Code2, eye: Eye,
+  check: CheckCircle2, zap: Zap, flag: Flag, star: Star,
+  pause: PauseCircle, layers: Layers,
+}
+
+const COLOR_PRESETS = [
+  { accent: '#475569', gradient: 'from-slate-600 to-slate-500'   },
+  { accent: '#2563eb', gradient: 'from-blue-600 to-blue-500'     },
+  { accent: '#0f766e', gradient: 'from-teal-700 to-teal-600'    },
+  { accent: '#059669', gradient: 'from-emerald-600 to-teal-500'  },
+  { accent: '#f59e0b', gradient: 'from-amber-500 to-orange-500'  },
+  { accent: '#dc2626', gradient: 'from-red-600 to-rose-500'      },
+  { accent: '#e11d48', gradient: 'from-rose-600 to-pink-500'     },
+  { accent: '#0d9488', gradient: 'from-teal-600 to-cyan-500'     },
+  { accent: '#0284c7', gradient: 'from-sky-600 to-sky-500'       },
+  { accent: '#ea580c', gradient: 'from-orange-600 to-orange-500' },
 ]
+
+const PRIORITY_CFG: Record<Priority, { bg: string; text: string; dot: string; label: string }> = {
+  Alta:  { bg: 'bg-red-50',   text: 'text-red-700',   dot: 'bg-red-500',   label: 'Alta'  },
+  Média: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Média' },
+  Baixa: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-600', label: 'Baixa' },
+}
+
+const TAG_COLORS = [
+  'bg-blue-100 text-blue-700', 'bg-teal-100 text-teal-700',
+  'bg-green-100 text-green-700', 'bg-amber-100 text-amber-700',
+  'bg-red-100 text-red-700', 'bg-pink-100 text-pink-700',
+  'bg-teal-100 text-teal-700', 'bg-orange-100 text-orange-700',
+]
+
+// ─── Dados iniciais ───────────────────────────────────────────────────────────
+
+const INIT_COLS: KanbanColumn[] = [
+  { id: 'entrada',        label: 'Entrada',            accent: '#475569', gradient: 'from-slate-600 to-slate-500',    iconKey: 'inbox', wip: 0, collapsed: false },
+  { id: 'analise',        label: 'Em análise',          accent: '#2563eb', gradient: 'from-blue-600 to-blue-500',      iconKey: 'search',wip: 0, collapsed: false },
+  { id: 'desenvolvimento',label: 'Em desenvolvimento',  accent: '#0369a1', gradient: 'from-sky-700 to-sky-600',        iconKey: 'code',  wip: 5, collapsed: false },
+  { id: 'revisao',        label: 'Em revisão',          accent: '#f59e0b', gradient: 'from-amber-500 to-orange-500',   iconKey: 'eye',   wip: 3, collapsed: false },
+  { id: 'concluido',      label: 'Concluído',           accent: '#059669', gradient: 'from-emerald-600 to-teal-500',   iconKey: 'check', wip: 0, collapsed: false },
+]
+
+function loadCards(): KanbanCard[] {
+  const base: KanbanCard[] = [
+    { id: '1', nome: 'Dashboard Comercial',    responsavel: 'Ana Lima',     dataEntrada: '2026-06-01', prazo: '2026-06-20', prioridade: 'Alta',  coluna: 'desenvolvimento', observacoes: 'Foco em meta vs realizado por vendedor', tags: ['Vendas','Urgente'] },
+    { id: '2', nome: 'Dashboard Financeiro',   responsavel: 'Carlos Melo',  dataEntrada: '2026-05-28', prazo: '2026-06-15', prioridade: 'Alta',  coluna: 'revisao',          observacoes: '', tags: ['DRE'] },
+    { id: '3', nome: 'Dashboard de RH',        responsavel: 'Marina Souza', dataEntrada: '2026-06-05', prazo: '2026-06-30', prioridade: 'Média', coluna: 'analise',          observacoes: 'Incluir turnover e absenteísmo', tags: ['RH'] },
+    { id: '4', nome: 'Dashboard de Operações', responsavel: 'João Silva',   dataEntrada: '2026-06-07', prazo: '2026-07-10', prioridade: 'Baixa', coluna: 'entrada',          observacoes: '', tags: [] },
+    { id: '5', nome: 'Dashboard Executivo',    responsavel: 'Filipe',       dataEntrada: '2026-05-10', prazo: '2026-05-30', prioridade: 'Alta',  coluna: 'concluido',        observacoes: 'Entregue na data combinada', tags: ['Exec'] },
+    { id: '6', nome: 'Dashboard de Estoque',   responsavel: 'Bia Alves',    dataEntrada: '2026-06-08', prazo: '2026-07-05', prioridade: 'Média', coluna: 'entrada',          observacoes: '', tags: [] },
+    { id: '7', nome: 'Dashboard de Suporte',   responsavel: 'Carlos Melo',  dataEntrada: '2026-06-09', prazo: '2026-07-20', prioridade: 'Baixa', coluna: 'analise',          observacoes: '', tags: ['Suporte'] },
+  ]
+  try {
+    const pending = JSON.parse(localStorage.getItem('kanban_from_canvas') || '[]') as KanbanCard[]
+    if (pending.length > 0) {
+      localStorage.removeItem('kanban_from_canvas')
+      return [...base, ...pending]
+    }
+  } catch { /* ignore */ }
+  return base
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,151 +109,133 @@ function fmt(d: string) {
 function daysLeft(prazo: string): number | null {
   if (!prazo) return null
   const today = new Date(); today.setHours(0, 0, 0, 0)
-  const dl = new Date(prazo)
-  return Math.ceil((dl.getTime() - today.getTime()) / 86_400_000)
+  return Math.ceil((new Date(prazo).getTime() - today.getTime()) / 86_400_000)
 }
 
 function initials(name: string) {
   return name.trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
 
-// ─── Modal de edição / criação ────────────────────────────────────────────────
-
-type CardDraft = Omit<KanbanCard, 'id'> & { id?: string }
-
-function blank(col: ColumnId): CardDraft {
-  return {
-    nome: '', responsavel: '', prioridade: 'Média', coluna: col,
-    dataEntrada: new Date().toISOString().slice(0, 10),
-    prazo: '', observacoes: '',
-  }
+function tagColor(tag: string) {
+  let hash = 0
+  for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash)
+  return TAG_COLORS[Math.abs(hash) % TAG_COLORS.length]
 }
 
-function Modal({ draft, onSave, onClose, onDelete }: {
-  draft: CardDraft
-  onSave: (d: CardDraft) => void
-  onClose: () => void
-  onDelete?: () => void
+// ─── Modal de Coluna ──────────────────────────────────────────────────────────
+
+type ColDraft = Omit<KanbanColumn, 'collapsed' | 'id'> & { id?: string }
+
+function blankCol(): ColDraft {
+  return { label: '', accent: COLOR_PRESETS[0].accent, gradient: COLOR_PRESETS[0].gradient, iconKey: 'inbox', wip: 0 }
+}
+
+function ColumnModal({ draft, onSave, onClose, onDelete }: {
+  draft: ColDraft; onSave: (d: ColDraft) => void
+  onClose: () => void; onDelete?: () => void
 }) {
   const [form, setForm] = useState(draft)
-  const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-up">
-        {/* Header */}
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-up">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-          <h3 className="font-bold text-slate-900 text-base">
-            {draft.id ? 'Editar card' : 'Novo card'}
-          </h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-            <X size={15} className="text-slate-500" />
-          </button>
+          <h3 className="font-bold text-slate-900">{draft.id ? 'Editar coluna' : 'Nova coluna'}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X size={15} className="text-slate-500" /></button>
         </div>
 
-        {/* Body */}
-        <div className="p-5 space-y-3.5 max-h-[70vh] overflow-y-auto">
+        <div className="p-5 space-y-4">
+          {/* Nome */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome do dashboard *</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome da coluna *</label>
             <input
-              value={form.nome}
-              onChange={e => set('nome', e.target.value)}
-              placeholder="Ex: Dashboard Comercial"
+              value={form.label}
+              onChange={e => setForm(p => ({ ...p, label: e.target.value }))}
+              placeholder="Ex: Em espera, Bloqueado..."
               className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Responsável</label>
-              <input
-                value={form.responsavel}
-                onChange={e => set('responsavel', e.target.value)}
-                placeholder="Nome"
-                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-              />
+          {/* Cor */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Cor</label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {COLOR_PRESETS.map(p => (
+                <button
+                  key={p.accent}
+                  onClick={() => setForm(f => ({ ...f, accent: p.accent, gradient: p.gradient }))}
+                  className={`w-8 h-8 rounded-xl transition-all ${form.accent === p.accent ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'}`}
+                  style={{ background: p.accent }}
+                />
+              ))}
             </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</label>
-              <select
-                value={form.prioridade}
-                onChange={e => set('prioridade', e.target.value)}
-                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+          </div>
+
+          {/* Ícone */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Ícone</label>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {Object.entries(ICON_MAP).map(([key, Icon]) => (
+                <button
+                  key={key}
+                  onClick={() => setForm(f => ({ ...f, iconKey: key }))}
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                    form.iconKey === key ? 'text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                  }`}
+                  style={form.iconKey === key ? { background: form.accent } : {}}
+                >
+                  <Icon size={15} />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* WIP */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Limite WIP</label>
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                onClick={() => setForm(f => ({ ...f, wip: f.wip > 0 ? 0 : 3 }))}
+                className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 ${form.wip > 0 ? 'bg-blue-600' : 'bg-slate-200'}`}
               >
-                <option>Alta</option>
-                <option>Média</option>
-                <option>Baixa</option>
-              </select>
+                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${form.wip > 0 ? 'left-6' : 'left-1'}`} />
+              </button>
+              {form.wip > 0 && (
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setForm(f => ({ ...f, wip: Math.max(1, f.wip - 1) }))} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">-</button>
+                  <span className="text-sm font-bold text-slate-700 w-6 text-center">{form.wip}</span>
+                  <button onClick={() => setForm(f => ({ ...f, wip: f.wip + 1 }))} className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">+</button>
+                  <span className="text-xs text-slate-400">cards máx.</span>
+                </div>
+              )}
+              {form.wip === 0 && <span className="text-xs text-slate-400">Sem limite de cards</span>}
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data de entrada</label>
-              <input
-                type="date"
-                value={form.dataEntrada}
-                onChange={e => set('dataEntrada', e.target.value)}
-                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prazo de entrega</label>
-              <input
-                type="date"
-                value={form.prazo}
-                onChange={e => set('prazo', e.target.value)}
-                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Etapa</label>
-            <select
-              value={form.coluna}
-              onChange={e => set('coluna', e.target.value)}
-              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all bg-white"
-            >
-              {COLUMNS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Observações</label>
-            <textarea
-              value={form.observacoes}
-              onChange={e => set('observacoes', e.target.value)}
-              placeholder="Detalhes adicionais, contexto, requisitos..."
-              rows={3}
-              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all"
-            />
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Preview */}
+        <div className="mx-5 mb-4 rounded-xl overflow-hidden border border-slate-100">
+          <div className={`flex items-center gap-2 px-3 py-2 bg-gradient-to-r ${form.gradient}`}>
+            {(() => { const Icon = ICON_MAP[form.iconKey] || Inbox; return <Icon size={12} color="white" /> })()}
+            <span className="text-xs font-bold text-white flex-1">{form.label || 'Prévia'}</span>
+            {form.wip > 0 && <span className="text-[10px] bg-white/25 text-white rounded-full px-1.5 font-bold">0/{form.wip}</span>}
+          </div>
+        </div>
+
         <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between">
           {onDelete ? (
-            <button onClick={onDelete} className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors">
-              Excluir
-            </button>
+            <button onClick={onDelete} className="text-xs font-semibold text-red-500 hover:text-red-700">Excluir coluna</button>
           ) : <span />}
           <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Cancelar</button>
             <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => { if (form.nome.trim()) onSave(form) }}
-              disabled={!form.nome.trim()}
+              onClick={() => { if (form.label.trim()) onSave(form) }}
+              disabled={!form.label.trim()}
               className="px-4 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-all"
-              style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}
+              style={{ background: form.accent }}
             >
               Salvar
             </button>
@@ -220,7 +246,136 @@ function Modal({ draft, onSave, onClose, onDelete }: {
   )
 }
 
-// ─── Card do Kanban ───────────────────────────────────────────────────────────
+// ─── Modal de Card ────────────────────────────────────────────────────────────
+
+type CardDraft = Omit<KanbanCard, 'id'> & { id?: string }
+
+function blankCard(coluna: string): CardDraft {
+  return { nome: '', responsavel: '', prioridade: 'Média', coluna, dataEntrada: new Date().toISOString().slice(0, 10), prazo: '', observacoes: '', tags: [] }
+}
+
+function CardModal({ draft, columns, onSave, onClose, onDelete }: {
+  draft: CardDraft; columns: KanbanColumn[]
+  onSave: (d: CardDraft) => void; onClose: () => void; onDelete?: () => void
+}) {
+  const [form, setForm] = useState(draft)
+  const [tagInput, setTagInput] = useState('')
+  const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
+
+  function addTag() {
+    const t = tagInput.trim()
+    if (!t || form.tags.includes(t)) return
+    setForm(p => ({ ...p, tags: [...p.tags, t] }))
+    setTagInput('')
+  }
+
+  function removeTag(t: string) {
+    setForm(p => ({ ...p, tags: p.tags.filter(x => x !== t) }))
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-up">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+          <h3 className="font-bold text-slate-900">{draft.id ? 'Editar card' : 'Novo card'}</h3>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X size={15} className="text-slate-500" /></button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[72vh] overflow-y-auto">
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome *</label>
+            <input value={form.nome} onChange={e => set('nome', e.target.value)} placeholder="Nome do dashboard"
+              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Responsável</label>
+              <input value={form.responsavel} onChange={e => set('responsavel', e.target.value)} placeholder="Nome"
+                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</label>
+              <select value={form.prioridade} onChange={e => set('prioridade', e.target.value)}
+                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 bg-white transition-all">
+                <option>Alta</option><option>Média</option><option>Baixa</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Data de entrada</label>
+              <input type="date" value={form.dataEntrada} onChange={e => set('dataEntrada', e.target.value)}
+                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prazo</label>
+              <input type="date" value={form.prazo} onChange={e => set('prazo', e.target.value)}
+                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Coluna</label>
+            <select value={form.coluna} onChange={e => set('coluna', e.target.value)}
+              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 bg-white transition-all">
+              {columns.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tags</label>
+            <div className="mt-1.5 flex flex-wrap gap-1.5 mb-2">
+              {form.tags.map(t => (
+                <span key={t} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${tagColor(t)}`}>
+                  {t}
+                  <button onClick={() => removeTag(t)} className="hover:opacity-70"><X size={9} /></button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTag()}
+                placeholder="Nova tag..."
+                className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
+              <button onClick={addTag} disabled={!tagInput.trim()}
+                className="px-3 py-2 text-xs font-bold text-white rounded-xl disabled:opacity-40 bg-blue-600 hover:bg-blue-700 transition-all">
+                Add
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Observações</label>
+            <textarea value={form.observacoes} onChange={e => set('observacoes', e.target.value)}
+              placeholder="Detalhes adicionais..." rows={3}
+              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all" />
+          </div>
+        </div>
+
+        <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between">
+          {onDelete ? (
+            <button onClick={onDelete} className="text-xs font-semibold text-red-500 hover:text-red-700">Excluir</button>
+          ) : <span />}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Cancelar</button>
+            <button onClick={() => { if (form.nome.trim()) onSave(form) }} disabled={!form.nome.trim()}
+              className="px-4 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-all"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}>
+              Salvar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Card ─────────────────────────────────────────────────────────────────────
 
 function KCard({ card, accent, dragging, onDragStart, onDragEnd, onClick }: {
   card: KanbanCard; accent: string; dragging: boolean
@@ -229,7 +384,7 @@ function KCard({ card, accent, dragging, onDragStart, onDragEnd, onClick }: {
   const days = daysLeft(card.prazo)
   const overdue = days !== null && days < 0
   const soon    = days !== null && days >= 0 && days <= 3
-  const p = PRIORITY[card.prioridade]
+  const p = PRIORITY_CFG[card.prioridade]
 
   return (
     <div
@@ -242,52 +397,185 @@ function KCard({ card, accent, dragging, onDragStart, onDragEnd, onClick }: {
       }`}
     >
       {/* Nome + prioridade */}
-      <div className="flex items-start justify-between gap-2 mb-2.5">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-sm font-semibold text-slate-800 leading-snug flex-1">{card.nome}</p>
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${p.bg} ${p.text}`}>
           <span className={`w-1.5 h-1.5 rounded-full ${p.dot}`} />
-          {card.prioridade}
+          {p.label}
         </span>
       </div>
 
+      {/* Tags */}
+      {card.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {card.tags.map(t => (
+            <span key={t} className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${tagColor(t)}`}>{t}</span>
+          ))}
+        </div>
+      )}
+
       {/* Responsável */}
       {card.responsavel && (
-        <div className="flex items-center gap-2 mb-2.5">
-          <div
-            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-            style={{ background: accent }}
-          >
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
+            style={{ background: accent }}>
             {initials(card.responsavel)}
           </div>
           <span className="text-xs text-slate-500 truncate">{card.responsavel}</span>
         </div>
       )}
 
-      {/* Datas */}
+      {/* Footer */}
       <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
         <div className="flex items-center gap-1 text-xs text-slate-400">
           <Calendar size={10} />
           <span>{fmt(card.dataEntrada)}</span>
         </div>
         {card.prazo && (
-          <div className={`flex items-center gap-1 text-xs font-medium ${
-            overdue ? 'text-red-600' : soon ? 'text-amber-600' : 'text-slate-400'
-          }`}>
+          <div className={`flex items-center gap-1 text-xs font-medium ${overdue ? 'text-red-600' : soon ? 'text-amber-600' : 'text-slate-400'}`}>
             {overdue ? <AlertCircle size={10} /> : <Clock size={10} />}
-            <span>
-              {overdue
-                ? `${Math.abs(days!)}d atrasado`
-                : days === 0 ? 'Vence hoje'
-                : `${days}d restantes`}
-            </span>
+            <span>{overdue ? `${Math.abs(days!)}d atrasado` : days === 0 ? 'Hoje' : `${days}d`}</span>
           </div>
         )}
       </div>
 
-      {/* Observação */}
       {card.observacoes && (
-        <p className="mt-2 text-xs text-slate-400 italic line-clamp-1">{card.observacoes}</p>
+        <p className="mt-1.5 text-xs text-slate-400 italic line-clamp-1">{card.observacoes}</p>
       )}
+    </div>
+  )
+}
+
+// ─── Coluna Kanban ────────────────────────────────────────────────────────────
+
+function KColumn({ col, cards, dragId, overCol, swimRow,
+  onDragOver, onDragLeave, onDrop,
+  onCardDragStart, onCardDragEnd,
+  onCardClick, onAddCard,
+  onEditCol, onDeleteCol,
+}: {
+  col: KanbanColumn; cards: KanbanCard[]; dragId: string | null
+  overCol: string | null; swimRow?: string
+  onDragOver: () => void; onDragLeave: (e: React.DragEvent) => void
+  onDrop: () => void
+  onCardDragStart: (id: string) => void; onCardDragEnd: () => void
+  onCardClick: (card: KanbanCard) => void
+  onAddCard: () => void; onEditCol: () => void; onDeleteCol: () => void
+}) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const dropKey = swimRow ? `${col.id}:${swimRow}` : col.id
+  const isOver  = overCol === dropKey && dragId !== null
+  const wipExceeded = col.wip > 0 && cards.length >= col.wip
+  const ColIcon = ICON_MAP[col.iconKey] || Inbox
+
+  if (col.collapsed) {
+    return (
+      <div className="flex-shrink-0 w-12 flex flex-col rounded-2xl overflow-hidden border border-slate-100 bg-white shadow-sm">
+        <div className={`flex-1 flex flex-col items-center py-3 bg-gradient-to-b ${col.gradient} cursor-pointer`}
+          onClick={onEditCol} title={col.label}>
+          <ColIcon size={14} color="white" />
+          <span className="mt-2 text-[10px] font-bold text-white/80 writing-mode-vertical rotate-180"
+            style={{ writingMode: 'vertical-rl' }}>
+            {col.label}
+          </span>
+          <span className="mt-2 text-xs font-bold bg-white/25 text-white rounded-full w-5 h-5 flex items-center justify-center">
+            {cards.length}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver() }}
+      onDragLeave={onDragLeave}
+      onDrop={e => { e.preventDefault(); onDrop() }}
+      className="flex flex-col flex-shrink-0 w-64 rounded-2xl transition-all duration-200"
+      style={{
+        background: isOver ? col.accent + '14' : col.accent + '0a',
+        outline: isOver ? `2px solid ${col.accent}55` : 'none',
+        outlineOffset: '2px',
+      }}
+    >
+      {/* Header */}
+      <div className={`flex items-center gap-2 px-3 py-2.5 rounded-t-2xl bg-gradient-to-r ${col.gradient} flex-shrink-0`}>
+        <ColIcon size={13} color="white" />
+        <span className="text-sm font-bold text-white flex-1 truncate">{col.label}</span>
+
+        {/* WIP badge */}
+        <span className={`text-xs font-bold rounded-full min-w-[22px] h-5 px-1.5 flex items-center justify-center flex-shrink-0 ${
+          wipExceeded ? 'bg-red-500 text-white animate-pulse' : 'bg-white/25 text-white'
+        }`}>
+          {col.wip > 0 ? `${cards.length}/${col.wip}` : cards.length}
+        </span>
+
+        {/* Menu */}
+        <div className="relative" ref={menuRef}>
+          <button onClick={() => setMenuOpen(p => !p)} className="p-1 rounded-lg hover:bg-white/20 transition-colors">
+            <MoreHorizontal size={13} color="white" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-7 z-30 bg-white rounded-xl shadow-xl border border-slate-100 py-1 w-44 animate-fade-up"
+              onMouseLeave={() => setMenuOpen(false)}>
+              <button onClick={() => { onEditCol(); setMenuOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                <Edit2 size={12} /> Editar coluna
+              </button>
+              <button onClick={() => { onAddCard(); setMenuOpen(false) }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                <Plus size={12} /> Adicionar card
+              </button>
+              <div className="my-1 border-t border-slate-100" />
+              <button onClick={() => onDeleteCol()}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-red-500 hover:bg-red-50">
+                <Trash2 size={12} /> Excluir coluna
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* WIP warning */}
+      {wipExceeded && (
+        <div className="px-2.5 py-1.5 bg-red-50 border-b border-red-100 flex items-center gap-1.5">
+          <Lock size={10} className="text-red-500" />
+          <span className="text-[10px] font-semibold text-red-600">Limite WIP atingido ({col.wip})</span>
+        </div>
+      )}
+
+      {/* Cards */}
+      <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 min-h-16">
+        {cards.map(card => (
+          <KCard key={card.id} card={card} accent={col.accent}
+            dragging={dragId === card.id}
+            onDragStart={() => onCardDragStart(card.id)}
+            onDragEnd={onCardDragEnd}
+            onClick={() => onCardClick(card)}
+          />
+        ))}
+
+        {isOver && (
+          <div className="rounded-xl h-14 border-2 border-dashed transition-all"
+            style={{ borderColor: col.accent + '55', background: col.accent + '0a' }} />
+        )}
+
+        {cards.length === 0 && !isOver && (
+          <div className="flex flex-col items-center justify-center py-8 text-slate-300 select-none">
+            <ColIcon size={20} />
+            <p className="text-xs mt-2 font-medium">Vazio</p>
+          </div>
+        )}
+      </div>
+
+      {/* Add button */}
+      <div className="p-2.5 pt-0 flex-shrink-0">
+        <button onClick={onAddCard}
+          className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border border-dashed border-slate-300 text-slate-400 hover:border-slate-400 hover:text-slate-600 hover:bg-white transition-all">
+          <Plus size={11} /> Adicionar
+        </button>
+      </div>
     </div>
   )
 }
@@ -295,158 +583,311 @@ function KCard({ card, accent, dragging, onDragStart, onDragEnd, onClick }: {
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Kanban() {
-  const [cards, setCards] = useState<KanbanCard[]>(INITIAL_CARDS)
-  const [dragId, setDragId]   = useState<string | null>(null)
-  const [overCol, setOverCol] = useState<ColumnId | null>(null)
-  const [modal, setModal]     = useState<CardDraft | null>(null)
+  const [columns, setColumns] = useState<KanbanColumn[]>(INIT_COLS)
+  const [cards,   setCards]   = useState<KanbanCard[]>(loadCards)
+  const [dragId,  setDragId]  = useState<string | null>(null)
+  const [overCol, setOverCol] = useState<string | null>(null)
+  const [cardModal, setCardModal] = useState<CardDraft | null>(null)
+  const [colModal,  setColModal]  = useState<ColDraft | null>(null)
 
-  function moveCard(id: string, to: ColumnId) {
-    setCards(p => p.map(c => c.id === id ? { ...c, coluna: to } : c))
-  }
+  // Filtros
+  const [search,    setSearch]    = useState('')
+  const [filterPri, setFilterPri] = useState<Priority | ''>('')
+  const [filterResp,setFilterResp]= useState('')
+  const [swimlane,  setSwimlane]  = useState<SwimlaneMode>('none')
+  const [showFilters, setShowFilters] = useState(false)
 
-  function handleDrop(colId: ColumnId) {
-    if (dragId) moveCard(dragId, colId)
-    setDragId(null)
-    setOverCol(null)
-  }
+  // Derived
+  const visibleCards = cards.filter(c => {
+    if (search     && !c.nome.toLowerCase().includes(search.toLowerCase()) && !c.responsavel.toLowerCase().includes(search.toLowerCase())) return false
+    if (filterPri  && c.prioridade !== filterPri) return false
+    if (filterResp && c.responsavel !== filterResp) return false
+    return true
+  })
 
-  function saveCard(d: CardDraft) {
-    if (d.id) {
-      setCards(p => p.map(c => c.id === d.id ? { ...c, ...d, id: c.id } : c))
-    } else {
-      setCards(p => [...p, { ...d, id: `k-${Date.now()}` }])
-    }
-    setModal(null)
-  }
+  const allResps = [...new Set(cards.map(c => c.responsavel).filter(Boolean))]
 
-  function deleteCard(id: string) {
-    setCards(p => p.filter(c => c.id !== id))
-    setModal(null)
-  }
+  const swimGroups: string[] = swimlane === 'prioridade'
+    ? ['Alta', 'Média', 'Baixa']
+    : swimlane === 'responsavel'
+      ? allResps
+      : []
 
-  const total = cards.length
   const done  = cards.filter(c => c.coluna === 'concluido').length
+  const total = cards.length
+  const activeFilters = [search, filterPri, filterResp].filter(Boolean).length
+
+  // Drag
+  function handleDrop(colId: string) {
+    if (dragId) setCards(p => p.map(c => c.id === dragId ? { ...c, coluna: colId } : c))
+    setDragId(null); setOverCol(null)
+  }
+
+  // Cards CRUD
+  function saveCard(d: CardDraft) {
+    if (d.id) setCards(p => p.map(c => c.id === d.id ? { ...c, ...d, id: c.id } : c))
+    else       setCards(p => [...p, { ...d, id: `k-${Date.now()}` }])
+    setCardModal(null)
+  }
+  function deleteCard(id: string) { setCards(p => p.filter(c => c.id !== id)); setCardModal(null) }
+
+  // Columns CRUD
+  function saveColumn(d: ColDraft) {
+    if (d.id) {
+      setColumns(p => p.map(c => c.id === d.id ? { ...c, ...d, collapsed: c.collapsed } : c))
+    } else {
+      const id = `col-${Date.now()}`
+      setColumns(p => [...p, { ...d, id, collapsed: false }])
+    }
+    setColModal(null)
+  }
+  function deleteColumn(id: string) {
+    setColumns(p => p.filter(c => c.id !== id))
+    setCards(p => p.filter(c => c.coluna !== id))
+    setColModal(null)
+  }
+  function toggleCollapse(id: string) {
+    setColumns(p => p.map(c => c.id === id ? { ...c, collapsed: !c.collapsed } : c))
+  }
+
+  // Render
+  function colCards(colId: string, group?: string) {
+    return visibleCards.filter(c => {
+      if (c.coluna !== colId) return false
+      if (group && swimlane === 'prioridade'  && c.prioridade  !== group) return false
+      if (group && swimlane === 'responsavel' && c.responsavel !== group) return false
+      return true
+    })
+  }
+
+  function dragKey(colId: string, group?: string) {
+    return group ? `${colId}:${group}` : colId
+  }
 
   return (
-    <div className="flex flex-col h-full gap-4 min-h-0">
+    <div className="flex flex-col h-full gap-3 min-h-0">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-shrink-0">
+      <div className="flex items-center justify-between flex-shrink-0 gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900">Kanban de Dashboards</h1>
           <p className="text-sm text-slate-400 mt-0.5">
-            {done} de {total} dashboards concluídos · arraste os cards para mover entre etapas
+            {done}/{total} concluídos · {columns.length} colunas · {cards.length} cards
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Progresso geral */}
-          <div className="hidden sm:flex items-center gap-2 bg-white border border-slate-100 rounded-xl px-4 py-2.5 shadow-sm">
-            <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-700"
-                style={{
-                  width: `${total ? Math.round((done / total) * 100) : 0}%`,
-                  background: 'linear-gradient(to right, #059669, #0d9488)',
-                }}
-              />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Progresso */}
+          <div className="hidden md:flex items-center gap-2 bg-white border border-slate-100 rounded-xl px-3 py-2 shadow-sm">
+            <div className="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${total ? Math.round((done / total) * 100) : 0}%`, background: 'linear-gradient(to right,#059669,#0d9488)' }} />
             </div>
-            <span className="text-xs font-bold text-slate-600">
-              {total ? Math.round((done / total) * 100) : 0}%
-            </span>
+            <span className="text-xs font-bold text-slate-600">{total ? Math.round((done / total) * 100) : 0}%</span>
           </div>
-          <button
-            onClick={() => setModal(blank('entrada'))}
-            className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold text-white rounded-xl shadow-md transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #2563eb, #7c3aed)' }}
-          >
-            <Plus size={15} /> Novo card
+
+          <button onClick={() => setShowFilters(p => !p)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
+              showFilters || activeFilters > 0 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
+            }`}>
+            <Filter size={12} />
+            Filtros
+            {activeFilters > 0 && <span className="bg-white text-blue-600 rounded-full w-4 h-4 text-[10px] font-bold flex items-center justify-center">{activeFilters}</span>}
+          </button>
+
+          <button onClick={() => setColModal(blankCol())}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-all">
+            <Plus size={12} /> Coluna
+          </button>
+
+          <button onClick={() => setCardModal(blankCard(columns[0]?.id || ''))}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl shadow-md transition-all hover:opacity-90"
+            style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}>
+            <Plus size={14} /> Novo card
           </button>
         </div>
       </div>
 
+      {/* ── Barra de filtros ── */}
+      {showFilters && (
+        <div className="flex flex-wrap gap-2 items-center p-3 bg-white rounded-2xl border border-slate-100 shadow-sm animate-fade-up flex-shrink-0">
+          {/* Search */}
+          <div className="flex items-center gap-2 flex-1 min-w-[160px] border border-slate-200 rounded-xl px-3 py-2">
+            <Search size={13} className="text-slate-400 flex-shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar cards..."
+              className="flex-1 text-sm outline-none text-slate-700 placeholder-slate-400 bg-transparent" />
+            {search && <button onClick={() => setSearch('')}><X size={12} className="text-slate-400" /></button>}
+          </div>
+
+          {/* Prioridade */}
+          <div className="flex items-center gap-1">
+            {(['', 'Alta', 'Média', 'Baixa'] as (Priority | '')[]).map(p => (
+              <button key={p} onClick={() => setFilterPri(p)}
+                className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
+                  filterPri === p
+                    ? p === '' ? 'bg-slate-700 text-white border-slate-700'
+                      : p === 'Alta' ? 'bg-red-500 text-white border-red-500'
+                      : p === 'Média' ? 'bg-amber-500 text-white border-amber-500'
+                      : 'bg-green-600 text-white border-green-600'
+                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                }`}>
+                {p || 'Todas'}
+              </button>
+            ))}
+          </div>
+
+          {/* Responsável */}
+          <select value={filterResp} onChange={e => setFilterResp(e.target.value)}
+            className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400 bg-white">
+            <option value="">Todos responsáveis</option>
+            {allResps.map(r => <option key={r} value={r}>{r}</option>)}
+          </select>
+
+          {/* Swimlane */}
+          <div className="flex items-center gap-1 border border-slate-200 rounded-xl p-1">
+            <span className="text-xs text-slate-400 px-2 flex items-center gap-1"><Layers size={11} /> Swimlane:</span>
+            {([['none','Nenhuma'],['prioridade','Prioridade'],['responsavel','Responsável']] as [SwimlaneMode, string][]).map(([k, l]) => (
+              <button key={k} onClick={() => setSwimlane(k)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${swimlane === k ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'}`}>
+                {l}
+              </button>
+            ))}
+          </div>
+
+          {/* Recolher colunas */}
+          <div className="flex items-center gap-1 ml-auto">
+            {columns.map(c => (
+              <button key={c.id} onClick={() => toggleCollapse(c.id)} title={c.collapsed ? `Expandir ${c.label}` : `Recolher ${c.label}`}
+                className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all border ${
+                  c.collapsed ? 'text-white border-transparent' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                }`}
+                style={c.collapsed ? { background: c.accent } : {}}>
+                {(() => { const Icon = ICON_MAP[c.iconKey] || Inbox; return <Icon size={11} /> })()}
+              </button>
+            ))}
+            <span className="text-xs text-slate-400 ml-1">recolher</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Board ── */}
-      <div className="flex gap-3 flex-1 overflow-x-auto pb-2 min-h-0">
-        {COLUMNS.map(col => {
-          const colCards = cards.filter(c => c.coluna === col.id)
-          const isOver   = overCol === col.id && dragId !== null
+      {swimlane === 'none' ? (
+        /* Modo normal */
+        <div className="flex gap-3 flex-1 overflow-x-auto pb-2 min-h-0">
+          {columns.map(col => (
+            <KColumn key={col.id} col={col}
+              cards={colCards(col.id)}
+              dragId={dragId} overCol={overCol}
+              onDragOver={() => setOverCol(col.id)}
+              onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverCol(null) }}
+              onDrop={() => handleDrop(col.id)}
+              onCardDragStart={id => setDragId(id)}
+              onCardDragEnd={() => { setDragId(null); setOverCol(null) }}
+              onCardClick={card => setCardModal({ ...card })}
+              onAddCard={() => setCardModal(blankCard(col.id))}
+              onEditCol={() => setColModal({ id: col.id, label: col.label, accent: col.accent, gradient: col.gradient, iconKey: col.iconKey, wip: col.wip })}
+              onDeleteCol={() => deleteColumn(col.id)}
+            />
+          ))}
 
-          return (
-            <div
-              key={col.id}
-              onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setOverCol(col.id) }}
-              onDragLeave={e => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverCol(null)
-              }}
-              onDrop={e => { e.preventDefault(); handleDrop(col.id) }}
-              className="flex flex-col flex-shrink-0 w-64 rounded-2xl transition-all duration-200"
-              style={{
-                background: isOver ? col.accent + '14' : col.soft,
-                outline: isOver ? `2px solid ${col.accent}55` : 'none',
-                outlineOffset: '2px',
-              }}
-            >
-              {/* Column header */}
-              <div className={`flex items-center gap-2 px-3.5 py-3 rounded-t-2xl bg-gradient-to-r ${col.gradient} flex-shrink-0`}>
-                <col.icon size={13} color="white" />
-                <span className="text-sm font-bold text-white flex-1 truncate">{col.label}</span>
-                <span className="text-xs font-bold bg-white/25 text-white rounded-full min-w-[20px] h-5 px-1.5 flex items-center justify-center">
-                  {colCards.length}
-                </span>
-              </div>
+          {/* Add column */}
+          <button onClick={() => setColModal(blankCol())}
+            className="flex-shrink-0 w-48 flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-500 transition-all self-start py-8">
+            <Plus size={20} />
+            <span className="text-xs font-semibold">Nova coluna</span>
+          </button>
+        </div>
+      ) : (
+        /* Modo swimlane */
+        <div className="flex-1 overflow-auto pb-2 min-h-0">
+          {/* Column headers */}
+          <div className="flex gap-3 mb-2 pl-32 sticky top-0 z-10 pb-1 bg-inherit">
+            {columns.filter(c => !c.collapsed).map(col => {
+              const ColIcon = ICON_MAP[col.iconKey] || Inbox
+              return (
+                <div key={col.id} className={`flex-shrink-0 w-64 rounded-xl bg-gradient-to-r ${col.gradient} px-3 py-2 flex items-center gap-2`}>
+                  <ColIcon size={12} color="white" />
+                  <span className="text-xs font-bold text-white truncate flex-1">{col.label}</span>
+                  <span className="text-[10px] bg-white/25 text-white rounded-full px-1.5 font-bold">
+                    {visibleCards.filter(c => c.coluna === col.id).length}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
 
-              {/* Cards list */}
-              <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5 min-h-16">
-                {colCards.map(card => (
-                  <KCard
-                    key={card.id}
-                    card={card}
-                    accent={col.accent}
-                    dragging={dragId === card.id}
-                    onDragStart={() => setDragId(card.id)}
-                    onDragEnd={() => { setDragId(null); setOverCol(null) }}
-                    onClick={() => setModal({ ...card })}
-                  />
-                ))}
-
-                {/* Drop placeholder */}
-                {isOver && (
-                  <div
-                    className="rounded-xl h-14 border-2 border-dashed transition-all"
-                    style={{ borderColor: col.accent + '55', background: col.accent + '0a' }}
-                  />
-                )}
-
-                {/* Empty state */}
-                {colCards.length === 0 && !isOver && (
-                  <div className="flex flex-col items-center justify-center py-8 text-slate-300 select-none">
-                    <col.icon size={20} />
-                    <p className="text-xs mt-2 font-medium">Vazio</p>
+          {/* Swimlane rows */}
+          <div className="space-y-3">
+            {swimGroups.map(group => {
+              const p = swimlane === 'prioridade' ? PRIORITY_CFG[group as Priority] : null
+              const groupCards = visibleCards.filter(c =>
+                swimlane === 'prioridade' ? c.prioridade === group : c.responsavel === group
+              )
+              return (
+                <div key={group} className="flex gap-3">
+                  {/* Row label */}
+                  <div className="w-28 flex-shrink-0 flex flex-col items-center justify-start pt-3 gap-1">
+                    {p ? (
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${p.bg} ${p.text} flex items-center gap-1`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${p.dot}`} />
+                        {group}
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-[9px] font-bold text-white">
+                          {initials(group)}
+                        </div>
+                        <span className="text-xs font-semibold text-slate-600 truncate max-w-[72px]">{group}</span>
+                      </div>
+                    )}
+                    <span className="text-[10px] text-slate-400">{groupCards.length} cards</span>
                   </div>
-                )}
-              </div>
 
-              {/* Add button */}
-              <div className="p-2.5 pt-0 flex-shrink-0">
-                <button
-                  onClick={() => setModal(blank(col.id))}
-                  className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold rounded-xl border border-dashed border-slate-300 text-slate-400 hover:border-slate-400 hover:text-slate-600 hover:bg-white transition-all"
-                >
-                  <Plus size={11} /> Adicionar
-                </button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+                  {/* Column cells */}
+                  {columns.filter(c => !c.collapsed).map(col => {
+                    const cellCards = colCards(col.id, group)
+                    const key = dragKey(col.id, group)
+                    const isOver = overCol === key && dragId !== null
+                    return (
+                      <div key={col.id}
+                        onDragOver={e => { e.preventDefault(); setOverCol(key) }}
+                        onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOverCol(null) }}
+                        onDrop={e => { e.preventDefault(); handleDrop(col.id) }}
+                        className="flex-shrink-0 w-64 rounded-xl p-2 space-y-2 min-h-16 transition-all"
+                        style={{ background: isOver ? col.accent + '18' : col.accent + '08', outline: isOver ? `2px solid ${col.accent}44` : 'none' }}>
+                        {cellCards.map(card => (
+                          <KCard key={card.id} card={card} accent={col.accent}
+                            dragging={dragId === card.id}
+                            onDragStart={() => setDragId(card.id)}
+                            onDragEnd={() => { setDragId(null); setOverCol(null) }}
+                            onClick={() => setCardModal({ ...card })}
+                          />
+                        ))}
+                        {isOver && <div className="rounded-xl h-12 border-2 border-dashed" style={{ borderColor: col.accent + '55' }} />}
+                        {cellCards.length === 0 && !isOver && (
+                          <div className="h-10 flex items-center justify-center">
+                            <span className="text-xs text-slate-300">—</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
-      {/* ── Modal ── */}
-      {modal && (
-        <Modal
-          draft={modal}
-          onSave={saveCard}
-          onClose={() => setModal(null)}
-          onDelete={modal.id ? () => deleteCard(modal.id!) : undefined}
-        />
+      {/* ── Modais ── */}
+      {cardModal && (
+        <CardModal draft={cardModal} columns={columns}
+          onSave={saveCard} onClose={() => setCardModal(null)}
+          onDelete={cardModal.id ? () => deleteCard(cardModal.id!) : undefined} />
+      )}
+      {colModal && (
+        <ColumnModal draft={colModal}
+          onSave={saveColumn} onClose={() => setColModal(null)}
+          onDelete={colModal.id ? () => deleteColumn(colModal.id!) : undefined} />
       )}
     </div>
   )

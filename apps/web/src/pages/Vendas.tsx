@@ -28,7 +28,7 @@ export default function Vendas() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total de Vendas" value="847 un" change={-5.9} icon={<ShoppingCart size={18} />} color="blue" />
         <StatCard title="Receita de Vendas" value="R$ 1,25M" change={4.2} icon={<DollarSign size={18} />} color="green" />
-        <StatCard title="Ticket Médio" value="R$ 1.477" change={2.1} icon={<TrendingUp size={18} />} color="purple" />
+        <StatCard title="Ticket Médio" value="R$ 1.477" change={2.1} icon={<TrendingUp size={18} />} color="teal" />
         <StatCard title="Novos Clientes" value="67" change={-16.3} icon={<Users size={18} />} color="yellow" />
       </div>
 

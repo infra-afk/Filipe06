@@ -14,12 +14,12 @@ const STEPS = [
     accent: '#2563eb',
     descricao: 'Qual é o objetivo principal? Para quem é este dashboard?',
     sugestoes: ['Aumentar Receita','Reduzir Custos','Melhorar Margem','Reduzir Churn','Aumentar Vendas','Controle Financeiro','Eficiência Operacional','Expansão de Mercado'],
-    extras: [{ campo: 'audiencia', label: 'Audiência', opcoes: ['Diretoria','Gerentes','Equipe Comercial','Equipe Financeira','Todos'] }],
+    extras: [{ campo: 'audiencia', label: 'Audiência', opcoes: ['Diretoria','Gerentes','Equipe Comercial','Equipe Financeira','Todos'], multiSelect: true }],
   },
   {
     key: 'indicadores', label: 'Indicadores', icon: BarChart2,
-    gradient: 'from-indigo-600 to-violet-600',
-    accent: '#4f46e5',
+    gradient: 'from-blue-700 to-blue-600',
+    accent: '#1d4ed8',
     descricao: 'Quais KPIs e métricas devem aparecer no dashboard?',
     sugestoes: ['Receita Total','Ticket Médio','Crescimento %','EBITDA','Margem Líquida','CAC','Clientes Novos','Clientes Recorrentes','Conversão','Despesas Totais'],
     extras: [{ campo: 'freq', label: 'Freq. de atualização', opcoes: ['Tempo real','Diário','Semanal','Mensal'] }],
@@ -74,8 +74,8 @@ const STEPS = [
   },
   {
     key: 'agentes', label: 'Agentes IA', icon: Bot,
-    gradient: 'from-violet-600 to-purple-600',
-    accent: '#7c3aed',
+    gradient: 'from-teal-700 to-teal-600',
+    accent: '#0f766e',
     descricao: 'Quais análises e automações de IA o dashboard deve gerar?',
     sugestoes: ['Análise automática de tendências','Previsão de vendas','Identificar anomalias em despesas','Resumo executivo semanal','Diagnóstico de margem','Alerta inteligente de desvios','Sugestão de ações corretivas'],
     extras: [{ campo: 'automacoes', label: 'Automação', opcoes: ['Relatório semanal','Alerta por desvio','Atualização automática','Resumo mensal por e-mail'] }],
@@ -119,14 +119,35 @@ function Tag({ label, active, onClick, accent }: { label: string; active: boolea
 // ─── Plano Final ──────────────────────────────────────────────────────────────
 
 function PlanoFinal({ state, onVoltar }: { state: CanvasState; onVoltar: () => void }) {
+  const [enviado, setEnviado] = useState(false)
+
   const secoes = STEPS.map(s => ({
     ...s,
     itens: [...((state[s.key] as string[]) || []), ...((state.custom[s.key]) || [])],
     extras: Object.entries(state.extras)
       .filter(([k]) => k.startsWith(s.key + '_'))
-      .map(([, v]) => v)
+      .map(([, v]) => v.split('|').filter(Boolean).join(', '))
       .filter(Boolean),
   })).filter(s => s.itens.length > 0 || s.extras.length > 0)
+
+  function enviarParaKanban() {
+    const objetivo = ((state['objetivos'] as string[]) || [])[0] || 'Dashboard do Canvas'
+    const audiencia = (state.extras['objetivos_audiencia'] || '').split('|').filter(Boolean).join(', ')
+    const card = {
+      id: `canvas_${Date.now()}`,
+      nome: `Dashboard: ${objetivo}`,
+      responsavel: '',
+      dataEntrada: new Date().toISOString().split('T')[0],
+      prazo: '',
+      prioridade: 'Média',
+      coluna: 'entrada',
+      observacoes: `Briefing gerado via Canvas.${audiencia ? ` Audiência: ${audiencia}.` : ''}`,
+      tags: ['Canvas'],
+    }
+    const existing = JSON.parse(localStorage.getItem('kanban_from_canvas') || '[]')
+    localStorage.setItem('kanban_from_canvas', JSON.stringify([...existing, card]))
+    setEnviado(true)
+  }
 
   return (
     <div className="space-y-6 animate-fade-up">
@@ -135,12 +156,27 @@ function PlanoFinal({ state, onVoltar }: { state: CanvasState; onVoltar: () => v
           <h1 className="text-xl font-bold text-slate-900">Briefing do Dashboard</h1>
           <p className="text-sm text-slate-400 mt-0.5">Pronto para o profissional montar o dashboard</p>
         </div>
-        <button
-          onClick={onVoltar}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
-        >
-          <ChevronLeft size={14} /> Editar
-        </button>
+        <div className="flex items-center gap-2">
+          {enviado ? (
+            <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl">
+              <CheckCircle2 size={14} /> Card criado no Kanban
+            </span>
+          ) : (
+            <button
+              onClick={enviarParaKanban}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl shadow-md transition-all hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}
+            >
+              <FileOutput size={14} /> Enviar para Kanban
+            </button>
+          )}
+          <button
+            onClick={onVoltar}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+          >
+            <ChevronLeft size={14} /> Editar
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -226,12 +262,16 @@ export default function CanvasOperacional() {
     })
   }
 
-  function toggleExtra(campo: string, val: string) {
+  function toggleExtra(campo: string, val: string, multiSelect?: boolean) {
     const k = `${step.key}_${campo}`
-    setState(prev => ({
-      ...prev,
-      extras: { ...prev.extras, [k]: prev.extras[k] === val ? '' : val },
-    }))
+    setState(prev => {
+      if (multiSelect) {
+        const current = prev.extras[k] ? prev.extras[k].split('|') : []
+        const next = current.includes(val) ? current.filter(v => v !== val) : [...current, val]
+        return { ...prev, extras: { ...prev.extras, [k]: next.join('|') } }
+      }
+      return { ...prev, extras: { ...prev.extras, [k]: prev.extras[k] === val ? '' : val } }
+    })
   }
 
   function addCustom() {
@@ -317,7 +357,7 @@ export default function CanvasOperacional() {
           <button
             onClick={() => setPlano(true)}
             className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-white rounded-xl shadow-md transition-all hover:opacity-90 animate-fade-up"
-            style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}
+            style={{ background: 'linear-gradient(135deg, #1e40af, #0f766e)' }}
           >
             <FileOutput size={12} /> Ver Briefing
           </button>
@@ -403,16 +443,20 @@ export default function CanvasOperacional() {
                     <div className="flex flex-wrap gap-1.5">
                       {extra.opcoes.map((opt: string) => {
                         const k = `${step.key}_${extra.campo}`
-                        const isActive = state.extras[k] === opt
+                        const isMulti = !!(extra as any).multiSelect
+                        const isActive = isMulti
+                          ? (state.extras[k] || '').split('|').filter(Boolean).includes(opt)
+                          : state.extras[k] === opt
                         return (
                           <button
                             key={opt}
-                            onClick={() => toggleExtra(extra.campo, opt)}
+                            onClick={() => toggleExtra(extra.campo, opt, isMulti)}
                             className={`px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${
                               isActive ? 'text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
                             }`}
                             style={isActive ? { background: step.accent, borderColor: step.accent } : {}}
                           >
+                            {isActive && isMulti && <CheckCircle2 size={10} className="inline mr-1 mb-0.5" />}
                             {opt}
                           </button>
                         )
@@ -492,7 +536,7 @@ export default function CanvasOperacional() {
               <button
                 onClick={() => setPlano(true)}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #1e40af, #7c3aed)' }}
+                style={{ background: 'linear-gradient(135deg, #1e40af, #0f766e)' }}
               >
                 <FileOutput size={13} /> Gerar Briefing
               </button>

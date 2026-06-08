@@ -49,7 +49,7 @@ export default function DRE() {
         {[
           { label: 'Receita Bruta', value: fmt(dre.receitaBruta), color: 'border-blue-200 bg-blue-50', textColor: 'text-blue-700' },
           { label: 'Lucro Bruto', value: fmt(dre.lucroBruto), color: 'border-green-200 bg-green-50', textColor: 'text-green-700' },
-          { label: 'EBITDA', value: fmt(dre.ebitda), color: 'border-purple-200 bg-purple-50', textColor: 'text-purple-700' },
+          { label: 'EBITDA', value: fmt(dre.ebitda), color: 'border-teal-200 bg-teal-50', textColor: 'text-teal-700' },
           { label: 'Resultado Líquido', value: fmt(dre.resultadoLiquido), color: 'border-green-200 bg-green-50', textColor: 'text-green-700' },
         ].map((c, i) => (
           <div key={i} className={`rounded-xl border p-4 ${c.color}`}>

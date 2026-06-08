@@ -72,11 +72,11 @@ const META: Record<string, { label: string; Icon: any; accent: string; light: st
   objetivos:   { label: 'Objetivos',    Icon: Target,    accent: '#2563eb', light: '#eff6ff' },
   indicadores: { label: 'Indicadores',  Icon: BarChart2, accent: '#16a34a', light: '#f0fdf4' },
   dados:       { label: 'Dados',        Icon: Database,  accent: '#4f46e5', light: '#eef2ff' },
-  pessoas:     { label: 'Pessoas',      Icon: Users,     accent: '#7c3aed', light: '#f5f3ff' },
+  pessoas:     { label: 'Pessoas',      Icon: Users,     accent: '#0f766e', light: '#f0fdfa' },
   decisoes:    { label: 'Decisões',     Icon: Lightbulb, accent: '#d97706', light: '#fffbeb' },
   analises:    { label: 'Análises',     Icon: PieChart,  accent: '#0891b2', light: '#ecfeff' },
   alertas:     { label: 'Alertas',      Icon: Bell,      accent: '#ea580c', light: '#fff7ed' },
-  agentes:     { label: 'Agentes IA',   Icon: Bot,       accent: '#9333ea', light: '#faf5ff' },
+  agentes:     { label: 'Agentes IA',   Icon: Bot,       accent: '#1d4ed8', light: '#eff6ff' },
   automacoes:  { label: 'Automações',   Icon: Zap,       accent: '#e11d48', light: '#fff1f2' },
 }
 
@@ -751,7 +751,7 @@ function FiltrosCard({ canvas, onAddItem, onDeleteItem }: Props) {
         {/* 2. Departamento */}
         <div className="p-4">
           <div className="flex items-center gap-1.5 mb-3">
-            <Building2 size={13} className="text-violet-500" />
+            <Building2 size={13} className="text-teal-500" />
             <p className="text-xs font-bold text-slate-700">Departamento</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -763,8 +763,8 @@ function FiltrosCard({ canvas, onAddItem, onDeleteItem }: Props) {
                   onClick={() => toggleDept(dept)}
                   className={`text-xs px-2.5 py-1 rounded-full border font-medium transition-all ${
                     active
-                      ? 'bg-violet-600 text-white border-violet-600'
-                      : 'bg-white text-slate-500 border-slate-200 hover:border-violet-300 hover:text-violet-600'
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-white text-slate-500 border-slate-200 hover:border-teal-300 hover:text-teal-600'
                   }`}
                 >
                   {dept}
@@ -818,7 +818,7 @@ function FiltrosCard({ canvas, onAddItem, onDeleteItem }: Props) {
         <span className="text-[11px] text-slate-500 font-semibold">Configuração ativa:</span>
         {[
           { Icon: Calendar,       label: local.periodo === 'Personalizado' && local.dataInicio ? `${local.dataInicio} → ${local.dataFim || '...'}` : local.periodo, color: 'text-blue-600' },
-          { Icon: Building2,      label: local.departamento.join(', '), color: 'text-violet-600' },
+          { Icon: Building2,      label: local.departamento.join(', '), color: 'text-teal-600' },
           { Icon: Layers,         label: local.granularidade, color: 'text-teal-600' },
           { Icon: ArrowLeftRight, label: local.comparacao, color: 'text-orange-500' },
         ].map(({ Icon, label, color }, i) => (

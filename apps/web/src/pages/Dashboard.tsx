@@ -27,7 +27,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Receita Total" value={fmt(1250000)} change={4.2} changeLabel="vs mês ant." icon={<DollarSign size={18} />} color="blue" />
         <StatCard title="EBITDA" value={fmt(285000)} change={-5.0} changeLabel="vs mês ant." icon={<TrendingUp size={18} />} color="green" />
-        <StatCard title="Margem" value="37,6%" change={-1.2} changeLabel="vs mês ant." icon={<BarChart2 size={18} />} color="purple" />
+        <StatCard title="Margem" value="37,6%" change={-1.2} changeLabel="vs mês ant." icon={<BarChart2 size={18} />} color="teal" />
         <StatCard title="Churn" value="3,2%" change={0.7} changeLabel="vs mês ant." icon={<TrendingDown size={18} />} color="red" />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
