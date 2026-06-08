@@ -75,7 +75,6 @@ export function api(_token?: string) {
         if (data.seed !== false) {
           const sectionsToInsert = SECTIONS_SEED.map(s => ({
             canvas_id: canvas.id,
-            owner_id: user.id,
             key: s.key,
             title: s.title,
             position: s.position,
@@ -125,7 +124,6 @@ export function api(_token?: string) {
           .insert({
             canvas_id: canvasId,
             section_id: data.section_id,
-            owner_id: user.id,
             title: data.title,
             description: data.description || null,
             color: data.color || 'yellow',
