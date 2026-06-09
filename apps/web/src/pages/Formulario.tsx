@@ -1,37 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import {
-  ClipboardList, ChevronDown, ChevronUp, Printer,
-  Calendar, Target, BarChart2, ShoppingCart, Receipt,
-  RefreshCcw, FileText, Bell, Lightbulb, Bot, Search,
-  X, Filter, Eye, EyeOff, Archive, Layers,
-} from 'lucide-react'
 import { getCards, getArquivados, KanbanCard } from '../store/kanbanStore'
-
-// ─── Seções do briefing ───────────────────────────────────────────────────────
-
-const BRIEFING_SECTIONS: {
-  key: keyof KanbanCard['briefing']
-  label: string
-  color: string
-  icon: React.ElementType
-}[] = [
-  { key: 'objetivo',    label: 'Objetivos',   color: '#2563eb', icon: Target       },
-  { key: 'indicadores', label: 'Indicadores', color: '#1d4ed8', icon: BarChart2    },
-  { key: 'vendas',      label: 'Vendas',      color: '#059669', icon: ShoppingCart },
-  { key: 'despesas',    label: 'Despesas',    color: '#dc2626', icon: Receipt      },
-  { key: 'devolucoes',  label: 'Devoluções',  color: '#f97316', icon: RefreshCcw   },
-  { key: 'dre',         label: 'DRE',         color: '#0d9488', icon: FileText     },
-  { key: 'alertas',     label: 'Alertas',     color: '#e11d48', icon: Bell         },
-  { key: 'decisoes',    label: 'Decisões',    color: '#d97706', icon: Lightbulb    },
-  { key: 'agentes',     label: 'Agentes IA',  color: '#0f766e', icon: Bot          },
-]
-
-const PRIORITY_CFG = {
-  Alta:  { bg: 'bg-red-50',   text: 'text-red-700',   dot: 'bg-red-500'   },
-  Média: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500' },
-  Baixa: { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-600' },
-}
+import { ChevronDown, ChevronUp, Printer, Search, X, Filter } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -41,192 +11,208 @@ function fmt(d: string) {
   return `${day}/${m}/${y}`
 }
 
-function hasBriefingData(b: KanbanCard['briefing']): boolean {
-  return BRIEFING_SECTIONS.some(s => {
-    const v = b[s.key]
-    return Array.isArray(v) && (v as string[]).length > 0
-  })
+function fmtHora() {
+  return new Date().toLocaleString('pt-BR')
 }
 
-// ─── Briefing Visual ──────────────────────────────────────────────────────────
-
-function BriefingView({ briefing }: { briefing: KanbanCard['briefing'] }) {
-  const secoes = BRIEFING_SECTIONS.filter(s => {
-    const v = briefing[s.key]
-    return Array.isArray(v) && (v as string[]).length > 0
-  })
-
-  if (secoes.length === 0) return (
-    <div className="px-4 py-4 border-t border-slate-100 bg-slate-50">
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Documentação do Canvas</p>
-      <p className="text-xs text-slate-400 italic">
-        Nenhuma seção documentada ainda. Abra o card no Kanban → aba <strong>Briefing do Canvas</strong> para preencher.
-      </p>
-    </div>
-  )
-
-  return (
-    <div className="p-4 space-y-3 bg-slate-50 border-t border-slate-100">
-      {briefing.titulo && (
-        <div className="rounded-xl px-4 py-2.5 text-white font-bold text-sm"
-          style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
-          {briefing.titulo}
-        </div>
-      )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {secoes.map(s => {
-          const Icon = s.icon
-          const items = briefing[s.key] as string[]
-          const nota = briefing.notas?.[s.key as string]
-          return (
-            <div key={s.key as string} className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100"
-                style={{ background: s.color + '12' }}>
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.color }}>
-                  <Icon size={12} className="text-white" />
-                </div>
-                <span className="text-xs font-bold text-slate-700">{s.label}</span>
-              </div>
-              <div className="p-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {items.map(item => (
-                    <span key={item} className="text-xs px-2.5 py-1 rounded-full font-medium text-white"
-                      style={{ background: s.color }}>
-                      {item}
-                    </span>
-                  ))}
-                </div>
-                {nota && (
-                  <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-50 pt-2">{nota}</p>
-                )}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
+const COLUNAS: Record<string, string> = {
+  entrada: 'Entrada',
+  analise: 'Em Análise',
+  desenvolvimento: 'Em Desenvolvimento',
+  revisao: 'Em Revisão',
+  concluido: 'Concluído',
 }
 
-// ─── Timeline de datas ────────────────────────────────────────────────────────
+const BRIEFING_SECTIONS: { key: keyof KanbanCard['briefing']; label: string }[] = [
+  { key: 'objetivo',    label: 'Objetivos'     },
+  { key: 'indicadores', label: 'Indicadores'   },
+  { key: 'vendas',      label: 'Vendas'        },
+  { key: 'despesas',    label: 'Despesas'      },
+  { key: 'devolucoes',  label: 'Devoluções'    },
+  { key: 'dre',         label: 'DRE'           },
+  { key: 'alertas',     label: 'Alertas'       },
+  { key: 'decisoes',    label: 'Decisões'      },
+  { key: 'agentes',     label: 'Agentes IA'    },
+]
 
-function Timeline({ card }: { card: KanbanCard }) {
-  const steps = [
-    { label: 'Entrada',          date: card.dataEntrada,         color: '#475569' },
-    { label: 'Em Análise',       date: card.dataAnalise,         color: '#2563eb' },
-    { label: 'Em Desenvolvimento',date: card.dataDesenvolvimento, color: '#0369a1' },
-    { label: 'Em Revisão',       date: card.dataRevisao,         color: '#f59e0b' },
-    { label: 'Concluído',        date: card.dataConcluido,       color: '#059669' },
-    { label: 'Arquivado',        date: card.dataArquivamento,    color: '#0d9488' },
-  ].filter(s => s.date)
+// ─── Documento de Auditoria por Card ─────────────────────────────────────────
 
-  if (steps.length === 0) return null
+function DocumentoCard({ card, index }: { card: KanbanCard; index: number }) {
+  const [aberto, setAberto] = useState(false)
+
+  const etapas = [
+    { label: 'Entrada',            data: card.dataEntrada         },
+    { label: 'Em Análise',         data: card.dataAnalise         },
+    { label: 'Em Desenvolvimento', data: card.dataDesenvolvimento },
+    { label: 'Em Revisão',         data: card.dataRevisao         },
+    { label: 'Concluído',          data: card.dataConcluido       },
+    { label: 'Arquivado',          data: card.dataArquivamento    },
+  ]
+
+  const secoesBriefing = BRIEFING_SECTIONS.map(s => ({
+    ...s,
+    itens: (card.briefing[s.key] as string[]) || [],
+    nota: card.briefing.notas?.[s.key as string] || '',
+  }))
+
+  const temBriefing = secoesBriefing.some(s => s.itens.length > 0)
 
   return (
-    <div className="px-4 py-3 bg-white border-t border-slate-100">
-      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Timeline</p>
-      <div className="flex flex-wrap gap-2">
-        {steps.map((s, i) => (
-          <div key={s.label} className="flex items-center gap-1.5">
-            <div className="flex flex-col items-center">
-              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 leading-none">{s.label}</p>
-              <p className="text-[10px] text-slate-400">{fmt(s.date)}</p>
-            </div>
-            {i < steps.length - 1 && (
-              <div className="w-6 h-px bg-slate-200 mx-1 self-center" />
+    <div className="border border-slate-300 bg-white print-card">
+      {/* Cabeçalho do documento */}
+      <div className="border-b border-slate-300 px-6 py-4 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="text-xs font-mono text-slate-400 mt-0.5 w-8 flex-shrink-0">
+            #{String(index).padStart(3, '0')}
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              {card.briefing?.titulo || card.nome}
+            </h2>
+            {card.briefing?.titulo && card.briefing.titulo !== card.nome && (
+              <p className="text-xs text-slate-500 mt-0.5">Referência interna: {card.nome}</p>
             )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ─── Card expansível ──────────────────────────────────────────────────────────
-
-function CardRegistro({ card }: { card: KanbanCard }) {
-  const [expandido, setExpandido] = useState(false)
-  const p = PRIORITY_CFG[card.prioridade]
-  const temBriefing = hasBriefingData(card.briefing)
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print-card">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 p-5">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-teal-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <BarChart2 size={15} className="text-white" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-bold text-slate-800 truncate">{card.nome}</h3>
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              {card.responsavel && (
-                <span className="text-xs bg-blue-50 text-blue-700 font-medium px-2 py-0.5 rounded-full">
-                  {card.responsavel}
-                </span>
-              )}
-              {card.solicitante && (
-                <span className="text-xs bg-slate-100 text-slate-600 font-medium px-2 py-0.5 rounded-full">
-                  Solicitante: {card.solicitante}
-                </span>
-              )}
-              <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${p.bg} ${p.text}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${p.dot}`} />
+            <div className="flex flex-wrap gap-x-6 gap-y-1 mt-2">
+              <span className="text-xs text-slate-600">
+                <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Responsável: </span>
+                {card.responsavel || '—'}
+              </span>
+              <span className="text-xs text-slate-600">
+                <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Solicitante: </span>
+                {card.solicitante || '—'}
+              </span>
+              <span className="text-xs text-slate-600">
+                <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Prioridade: </span>
                 {card.prioridade}
               </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <Layers size={10} /> {card.coluna}
+              <span className="text-xs text-slate-600">
+                <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Status: </span>
+                {card.arquivado ? 'Arquivado' : COLUNAS[card.coluna] || card.coluna}
               </span>
-              {card.arquivado && (
-                <span className="text-xs bg-teal-50 text-teal-700 font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Archive size={10} /> Arquivado
+              <span className="text-xs text-slate-600">
+                <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Data de entrada: </span>
+                {fmt(card.dataEntrada)}
+              </span>
+              {card.prazo && (
+                <span className="text-xs text-slate-600">
+                  <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Prazo: </span>
+                  {fmt(card.prazo)}
                 </span>
               )}
             </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={() => window.print()} title="Imprimir"
-            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors">
-            <Printer size={13} className="text-slate-400" />
-          </button>
-          <button onClick={() => setExpandido(p => !p)}
-            className="flex items-center gap-1.5 ml-1 px-3 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition-all">
-            {expandido ? <EyeOff size={12} /> : <Eye size={12} />}
-            {expandido ? 'Fechar' : 'Expandir'}
-            {expandido ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-          </button>
-        </div>
+        <button
+          onClick={() => setAberto(v => !v)}
+          className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 border border-slate-300 px-3 py-1.5 transition-colors flex-shrink-0"
+        >
+          {aberto ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          {aberto ? 'Recolher' : 'Expandir'}
+        </button>
       </div>
 
-      {/* Tags */}
-      {card.tags.length > 0 && (
-        <div className="px-5 pb-3 flex flex-wrap gap-1.5">
-          {card.tags.map(t => (
-            <span key={t} className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-medium">
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
+      {aberto && (
+        <div className="divide-y divide-slate-200">
 
-      {/* Expandido */}
-      {expandido && (
-        <>
-          <Timeline card={card} />
-          {card.observacoes && (
-            <div className="px-5 py-3 border-t border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Observações</p>
-              <p className="text-sm text-slate-600">{card.observacoes}</p>
+          {/* Seção 1 — Rastreabilidade */}
+          <div className="px-6 py-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+              1. Rastreabilidade — Histórico de Etapas
+            </h3>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-1.5 pr-6 font-semibold text-slate-600 w-48">Etapa</th>
+                  <th className="text-left py-1.5 font-semibold text-slate-600">Data de Registro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {etapas.map(e => (
+                  <tr key={e.label} className="border-b border-slate-100">
+                    <td className="py-1.5 pr-6 text-slate-700">{e.label}</td>
+                    <td className={`py-1.5 font-mono ${e.data ? 'text-slate-800' : 'text-slate-300'}`}>
+                      {e.data ? fmt(e.data) : 'Não registrado'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Seção 2 — Tags e Observações */}
+          {(card.tags.length > 0 || card.observacoes) && (
+            <div className="px-6 py-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+                2. Classificação e Observações
+              </h3>
+              {card.tags.length > 0 && (
+                <p className="text-xs text-slate-700 mb-2">
+                  <span className="font-semibold text-slate-500">Tags: </span>
+                  {card.tags.join(', ')}
+                </p>
+              )}
+              {card.observacoes && (
+                <p className="text-xs text-slate-700 leading-relaxed">
+                  <span className="font-semibold text-slate-500">Observações: </span>
+                  {card.observacoes}
+                </p>
+              )}
             </div>
           )}
-          <BriefingView briefing={card.briefing} />
-        </>
+
+          {/* Seção 3 — Canvas Operacional */}
+          <div className="px-6 py-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+              3. Canvas Operacional — Documentação Técnica
+            </h3>
+
+            {!temBriefing ? (
+              <p className="text-xs text-slate-400 italic">
+                Nenhuma seção do Canvas foi documentada para este card. Para preencher, acesse o Kanban → abra o card → aba "Briefing do Canvas".
+              </p>
+            ) : (
+              <div>
+                {card.briefing?.titulo && (
+                  <p className="text-xs text-slate-700 mb-4">
+                    <span className="font-semibold text-slate-500">Título do Canvas: </span>
+                    {card.briefing.titulo}
+                  </p>
+                )}
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-300 bg-slate-50">
+                      <th className="text-left py-2 px-3 font-semibold text-slate-600 w-36">Seção</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-600">Itens Documentados</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-600 w-56">Anotação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {secoesBriefing.map(s => (
+                      <tr key={s.key as string} className="border-b border-slate-100 align-top">
+                        <td className="py-2 px-3 font-medium text-slate-600">{s.label}</td>
+                        <td className="py-2 px-3 text-slate-700">
+                          {s.itens.length > 0
+                            ? s.itens.join(' · ')
+                            : <span className="text-slate-300">—</span>
+                          }
+                        </td>
+                        <td className="py-2 px-3 text-slate-500 italic">
+                          {s.nota || <span className="text-slate-200">—</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Rodapé do documento */}
+          <div className="px-6 py-3 bg-slate-50 flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 font-mono">ID: {card.id}</span>
+            <span className="text-[10px] text-slate-400">Impresso em: {fmtHora()}</span>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -236,121 +222,338 @@ function CardRegistro({ card }: { card: KanbanCard }) {
 
 export default function Formulario() {
   const navigate = useNavigate()
-  const [cards]     = useState<KanbanCard[]>(() => [...getCards(), ...getArquivados()])
-  const [busca, setBusca] = useState('')
+  const [allCards]      = useState<KanbanCard[]>(() => [...getCards(), ...getArquivados()])
+  const [busca, setBusca]             = useState('')
   const [filtroStatus, setFiltroStatus] = useState<'todos' | 'ativo' | 'arquivado'>('todos')
-  const [filtroResp, setFiltroResp] = useState('')
+  const [filtroResp, setFiltroResp]   = useState('')
+  const [expandirTodos, setExpandirTodos] = useState(false)
 
-  const responsaveis = [...new Set(cards.map(c => c.responsavel).filter(Boolean))]
+  const responsaveis = [...new Set(allCards.map(c => c.responsavel).filter(Boolean))]
 
-  const filtrados = cards.filter(c => {
-    if (filtroStatus === 'ativo'    && c.arquivado) return false
+  const filtrados = allCards.filter(c => {
+    if (filtroStatus === 'ativo'     && c.arquivado)  return false
     if (filtroStatus === 'arquivado' && !c.arquivado) return false
-    if (filtroResp && c.responsavel !== filtroResp) return false
+    if (filtroResp && c.responsavel !== filtroResp)   return false
     if (busca) {
       const q = busca.toLowerCase()
-      if (!c.nome.toLowerCase().includes(q) &&
-          !c.responsavel.toLowerCase().includes(q) &&
-          !c.solicitante.toLowerCase().includes(q)) return false
+      return (
+        c.nome.toLowerCase().includes(q) ||
+        (c.briefing?.titulo || '').toLowerCase().includes(q) ||
+        c.responsavel.toLowerCase().includes(q) ||
+        c.solicitante.toLowerCase().includes(q) ||
+        c.tags.some(t => t.toLowerCase().includes(q))
+      )
     }
     return true
   })
 
-  const ativos     = cards.filter(c => !c.arquivado).length
-  const arquivados = cards.filter(c => c.arquivado).length
+  const ativos     = allCards.filter(c => !c.arquivado).length
+  const arquivados = allCards.filter(c =>  c.arquivado).length
 
   return (
-    <div className="max-w-4xl mx-auto space-y-5">
+    <div className="max-w-4xl mx-auto">
 
-      {/* Header */}
-      <div className="rounded-2xl overflow-hidden"
-        style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
-        <div className="relative px-7 py-7">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <ClipboardList size={22} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white/70 text-xs font-bold uppercase tracking-widest">Registro de Documentação</p>
-              <h1 className="text-white text-2xl font-black mt-0.5">Dashboards</h1>
-              <p className="text-white/80 text-sm mt-0.5">
-                {ativos} ativo{ativos !== 1 ? 's' : ''} · {arquivados} arquivado{arquivados !== 1 ? 's' : ''}
-              </p>
-            </div>
+      {/* Cabeçalho institucional */}
+      <div className="border-b-2 border-slate-900 pb-4 mb-6 print-header">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+              CHUÁ — ALÉM DA DISTRIBUIÇÃO
+            </p>
+            <h1 className="text-2xl font-bold text-slate-900">Registro de Dashboards</h1>
+            <p className="text-sm text-slate-500 mt-1">
+              Documentação técnica para fins de auditoria e rastreabilidade
+            </p>
+          </div>
+          <div className="text-right flex-shrink-0">
+            <p className="text-[10px] text-slate-400 font-mono">Gerado em: {fmtHora()}</p>
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+              Total: {allCards.length} registros · {ativos} ativos · {arquivados} arquivados
+            </p>
+            <button
+              onClick={() => window.print()}
+              className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 px-3 py-1.5 transition-colors ml-auto"
+            >
+              <Printer size={12} /> Imprimir / Exportar PDF
+            </button>
           </div>
         </div>
       </div>
 
       {/* Nenhum card */}
-      {cards.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <ClipboardList size={40} className="mb-4 opacity-30" />
-          <p className="text-base font-bold text-slate-600 mb-1">Nenhum card encontrado</p>
-          <p className="text-sm text-slate-400 mb-5">Crie um briefing no Canvas Operacional para começar</p>
+      {allCards.length === 0 && (
+        <div className="text-center py-20 border border-slate-200">
+          <p className="text-slate-500 font-semibold mb-2">Nenhum registro encontrado</p>
+          <p className="text-sm text-slate-400 mb-5">
+            Crie um Canvas Operacional para gerar o primeiro registro de dashboard.
+          </p>
           <button
             onClick={() => navigate('/canvases')}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition-all"
-            style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
+            className="text-sm font-semibold text-white bg-slate-900 px-5 py-2.5 hover:bg-slate-700 transition-colors"
+          >
             Ir para o Canvas Operacional
           </button>
         </div>
       )}
 
-      {cards.length > 0 && (
+      {allCards.length > 0 && (
         <>
           {/* Filtros */}
-          <div className="flex flex-wrap gap-2 items-center bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
+          <div className="flex flex-wrap gap-3 items-center mb-5 p-3 bg-slate-50 border border-slate-200">
             <Filter size={13} className="text-slate-400 flex-shrink-0" />
 
-            {/* Busca */}
-            <div className="flex items-center gap-2 flex-1 min-w-[180px] border border-slate-200 rounded-xl px-3 py-2">
+            <div className="flex items-center gap-2 flex-1 min-w-[180px] border border-slate-300 bg-white px-3 py-2">
               <Search size={12} className="text-slate-400 flex-shrink-0" />
-              <input value={busca} onChange={e => setBusca(e.target.value)}
-                placeholder="Buscar por nome, responsável..."
-                className="flex-1 text-sm outline-none text-slate-700 placeholder-slate-400 bg-transparent" />
-              {busca && <button onClick={() => setBusca('')}><X size={11} className="text-slate-400" /></button>}
+              <input
+                value={busca}
+                onChange={e => setBusca(e.target.value)}
+                placeholder="Buscar por nome, responsável, tag..."
+                className="flex-1 text-sm outline-none text-slate-700 placeholder-slate-400 bg-transparent"
+              />
+              {busca && (
+                <button onClick={() => setBusca('')}><X size={11} className="text-slate-400" /></button>
+              )}
             </div>
 
-            {/* Status */}
-            <div className="flex items-center gap-1 border border-slate-200 rounded-xl p-1">
+            <div className="flex items-center gap-0 border border-slate-300 overflow-hidden">
               {(['todos', 'ativo', 'arquivado'] as const).map(s => (
                 <button key={s} onClick={() => setFiltroStatus(s)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
-                    filtroStatus === s ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                  className={`px-3 py-2 text-xs font-medium transition-colors ${
+                    filtroStatus === s
+                      ? 'bg-slate-900 text-white'
+                      : 'bg-white text-slate-500 hover:bg-slate-50'
                   }`}>
                   {s === 'todos' ? 'Todos' : s === 'ativo' ? 'Ativos' : 'Arquivados'}
                 </button>
               ))}
             </div>
 
-            {/* Responsável */}
             {responsaveis.length > 0 && (
-              <select value={filtroResp} onChange={e => setFiltroResp(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400 bg-white">
+              <select
+                value={filtroResp}
+                onChange={e => setFiltroResp(e.target.value)}
+                className="border border-slate-300 px-3 py-2 text-xs text-slate-600 outline-none focus:border-slate-500 bg-white"
+              >
                 <option value="">Todos responsáveis</option>
                 {responsaveis.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             )}
 
-            <span className="text-xs text-slate-400 font-medium ml-auto flex-shrink-0">
-              {filtrados.length} registro{filtrados.length !== 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-3 ml-auto">
+              <span className="text-xs text-slate-400 font-mono">
+                {filtrados.length} de {allCards.length} registros
+              </span>
+              <button
+                onClick={() => setExpandirTodos(v => !v)}
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 border border-slate-300 px-3 py-2 bg-white transition-colors"
+              >
+                {expandirTodos ? 'Recolher todos' : 'Expandir todos'}
+              </button>
+            </div>
           </div>
 
-          {/* Lista */}
+          {/* Lista sem resultado */}
           {filtrados.length === 0 ? (
-            <div className="text-center py-12 text-slate-400">
-              <Search size={32} className="mx-auto mb-3 opacity-30" />
-              <p className="text-sm font-medium">Nenhum resultado para os filtros aplicados</p>
-            </div>
+            <p className="text-center py-10 text-sm text-slate-400">
+              Nenhum registro para os filtros aplicados.
+            </p>
           ) : (
-            <div className="space-y-4">
-              {filtrados.map(c => (
-                <CardRegistro key={c.id} card={c} />
+            <div className="space-y-0 border-t border-slate-300">
+              {filtrados.map((c, i) => (
+                <DocumentoCardControlled
+                  key={c.id}
+                  card={c}
+                  index={i + 1}
+                  forceOpen={expandirTodos}
+                />
               ))}
             </div>
           )}
+
+          {/* Assinatura de auditoria */}
+          {filtrados.length > 0 && (
+            <div className="mt-8 border-t border-slate-300 pt-6 print-footer">
+              <div className="grid grid-cols-3 gap-8">
+                {['Elaborado por', 'Revisado por', 'Aprovado por'].map(label => (
+                  <div key={label}>
+                    <div className="border-b border-slate-400 mb-2 h-8" />
+                    <p className="text-[10px] text-slate-500 uppercase tracking-widest">{label}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Data: ___/___/______</p>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-400 text-center mt-6 font-mono">
+                CHUÁ — Dashboard Executivo · Documento gerado em {fmtHora()} · Uso interno
+              </p>
+            </div>
+          )}
         </>
+      )}
+    </div>
+  )
+}
+
+// Wrapper que respeita o forceOpen
+function DocumentoCardControlled({
+  card, index, forceOpen,
+}: { card: KanbanCard; index: number; forceOpen: boolean }) {
+  const [aberto, setAberto] = useState(false)
+  const open = forceOpen || aberto
+
+  const etapas = [
+    { label: 'Entrada',            data: card.dataEntrada         },
+    { label: 'Em Análise',         data: card.dataAnalise         },
+    { label: 'Em Desenvolvimento', data: card.dataDesenvolvimento },
+    { label: 'Em Revisão',         data: card.dataRevisao         },
+    { label: 'Concluído',          data: card.dataConcluido       },
+    { label: 'Arquivado',          data: card.dataArquivamento    },
+  ]
+
+  const secoesBriefing = BRIEFING_SECTIONS.map(s => ({
+    ...s,
+    itens: (card.briefing[s.key] as string[]) || [],
+    nota: card.briefing.notas?.[s.key as string] || '',
+  }))
+
+  const temBriefing = secoesBriefing.some(s => s.itens.length > 0)
+
+  return (
+    <div className="border-b border-slate-300 bg-white print-card">
+      {/* Cabeçalho do documento */}
+      <div className="px-6 py-4 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-4">
+          <div className="text-xs font-mono text-slate-400 mt-0.5 w-8 flex-shrink-0 flex-shrink-0">
+            #{String(index).padStart(3, '0')}
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900">
+              {card.briefing?.titulo || card.nome}
+            </h2>
+            {card.briefing?.titulo && card.briefing.titulo !== card.nome && (
+              <p className="text-xs text-slate-500 mt-0.5">Ref.: {card.nome}</p>
+            )}
+            <div className="flex flex-wrap gap-x-6 gap-y-0.5 mt-2">
+              {[
+                ['Responsável', card.responsavel || '—'],
+                ['Solicitante', card.solicitante || '—'],
+                ['Prioridade',  card.prioridade],
+                ['Status',      card.arquivado ? 'Arquivado' : (COLUNAS[card.coluna] || card.coluna)],
+                ['Entrada',     fmt(card.dataEntrada)],
+                ...(card.prazo ? [['Prazo', fmt(card.prazo)] as [string,string]] : []),
+              ].map(([label, value]) => (
+                <span key={label} className="text-xs text-slate-700">
+                  <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">{label}: </span>
+                  {value}
+                </span>
+              ))}
+              {card.tags.length > 0 && (
+                <span className="text-xs text-slate-700">
+                  <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Tags: </span>
+                  {card.tags.join(', ')}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setAberto(v => !v)}
+          className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-800 border border-slate-300 px-3 py-1.5 transition-colors flex-shrink-0 bg-white"
+        >
+          {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          {open ? 'Recolher' : 'Expandir'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="divide-y divide-slate-200 border-t border-slate-200">
+
+          {/* Rastreabilidade */}
+          <div className="px-6 py-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+              1. Rastreabilidade — Histórico de Etapas
+            </h3>
+            <table className="w-full text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left py-1.5 pr-8 font-semibold text-slate-600">Etapa</th>
+                  <th className="text-left py-1.5 font-semibold text-slate-600">Data de Registro</th>
+                </tr>
+              </thead>
+              <tbody>
+                {etapas.map(e => (
+                  <tr key={e.label} className="border-b border-slate-100">
+                    <td className="py-1.5 pr-8 text-slate-700">{e.label}</td>
+                    <td className={`py-1.5 font-mono ${e.data ? 'text-slate-900 font-medium' : 'text-slate-300'}`}>
+                      {e.data ? fmt(e.data) : 'Não registrado'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Observações */}
+          {card.observacoes && (
+            <div className="px-6 py-4">
+              <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                2. Observações
+              </h3>
+              <p className="text-xs text-slate-700 leading-relaxed">{card.observacoes}</p>
+            </div>
+          )}
+
+          {/* Canvas */}
+          <div className="px-6 py-4">
+            <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3">
+              {card.observacoes ? '3' : '2'}. Canvas Operacional — Documentação Técnica
+            </h3>
+            {!temBriefing ? (
+              <p className="text-xs text-slate-400 italic">
+                Nenhuma seção do Canvas documentada. Acesse Kanban → card → aba "Briefing do Canvas" para preencher.
+              </p>
+            ) : (
+              <>
+                {card.briefing?.titulo && (
+                  <p className="text-xs text-slate-700 mb-3">
+                    <span className="font-semibold text-slate-500 uppercase text-[10px] tracking-wider">Título do Canvas: </span>
+                    {card.briefing.titulo}
+                  </p>
+                )}
+                <table className="w-full text-xs border-collapse border border-slate-200">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left py-2 px-3 font-semibold text-slate-600 border-r border-slate-200 w-32">Seção</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-600 border-r border-slate-200">Itens Documentados</th>
+                      <th className="text-left py-2 px-3 font-semibold text-slate-600 w-52">Anotação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {secoesBriefing.map(s => (
+                      <tr key={s.key as string} className="border-b border-slate-200 align-top">
+                        <td className="py-2 px-3 font-medium text-slate-700 border-r border-slate-200">{s.label}</td>
+                        <td className="py-2 px-3 text-slate-700 border-r border-slate-200">
+                          {s.itens.length > 0
+                            ? s.itens.join(' · ')
+                            : <span className="text-slate-300">Não preenchido</span>
+                          }
+                        </td>
+                        <td className="py-2 px-3 text-slate-500 italic text-[11px]">
+                          {s.nota || '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+          </div>
+
+          {/* Rodapé do registro */}
+          <div className="px-6 py-2.5 bg-slate-50 flex items-center justify-between">
+            <span className="text-[10px] text-slate-400 font-mono">ID do registro: {card.id}</span>
+            <span className="text-[10px] text-slate-400 font-mono">Visualizado em: {fmtHora()}</span>
+          </div>
+        </div>
       )}
     </div>
   )

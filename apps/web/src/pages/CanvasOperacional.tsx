@@ -742,14 +742,35 @@ export default function CanvasOperacional() {
                 style={{ background: `linear-gradient(135deg,${step.from},${step.to})` }}>
                 Próxima <ChevronRight size={15} />
               </button>
-            ) : (
-              <button
-                onClick={gerarBriefingEIrParaKanban}
-                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition-all"
-                style={{ background: `linear-gradient(135deg,${step.from},${step.to})` }}>
-                <FileOutput size={15} /> Gerar Briefing e ir para o Kanban <ChevronRight size={15} />
-              </button>
-            )}
+            ) : (() => {
+              const etapasIncompletas = STEPS.filter(s => (state[s.key] as string[]).length === 0 && (state.custom[s.key] || []).length === 0)
+              const semTitulo = !state.titulo.trim()
+              const bloqueado = etapasIncompletas.length > 0 || semTitulo
+              return (
+                <div className="flex flex-col items-end gap-1.5">
+                  {bloqueado && (
+                    <div className="text-right">
+                      {semTitulo && (
+                        <p className="text-[10px] text-red-500 font-semibold">• Título obrigatório no passo Objetivos</p>
+                      )}
+                      {etapasIncompletas.length > 0 && (
+                        <p className="text-[10px] text-red-500 font-semibold">
+                          • Preencha: {etapasIncompletas.map(s => s.label).join(', ')}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  <button
+                    onClick={bloqueado ? undefined : gerarBriefingEIrParaKanban}
+                    disabled={bloqueado}
+                    title={bloqueado ? 'Preencha todas as etapas antes de gerar o briefing' : ''}
+                    className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+                    style={{ background: bloqueado ? '#94a3b8' : `linear-gradient(135deg,${step.from},${step.to})` }}>
+                    <FileOutput size={15} /> Gerar Briefing e ir para o Kanban <ChevronRight size={15} />
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         </div>
 
