@@ -5,22 +5,21 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 
 function ChuaLogo() {
-  // Segmento base apontando para cima (12h), anel r1=21 r2=46, arco de ±12.5°
-  // Pré-calculado: cos(12.5°)=0.9763  sin(12.5°)=0.2164
-  // Outer: x=50±46*0.2164=50±9.95  y=50-46*0.9763=50-44.91=5.09
-  // Inner: x=50±21*0.2164=50±4.54  y=50-21*0.9763=50-20.50=29.50
-  const seg = "M40.05,5.09 A46,46 0 0,1 59.95,5.09 L54.54,29.50 A21,21 0 0,0 45.46,29.50 Z"
-  // 11 posições de 12 (30° cada), gap na posição 4 (4h = 120°)
+  /*
+   * Roda CHUÁ — 11 segmentos em arco de anel
+   * r_outer=47, r_inner=27, span=±13° por segmento (26° total, gap=4°)
+   * sin13°=0.2250  cos13°=0.9744
+   * Outer: x=50±47*0.2250=50±10.58 → 39.42, 60.58  y=50-47*0.9744=50-45.80=4.20
+   * Inner: x=50±27*0.2250=50±6.08  → 43.93, 56.08  y=50-27*0.9744=50-26.31=23.69
+   */
+  const seg = "M39.42,4.20 A47,47 0 0,1 60.58,4.20 L56.08,23.69 A27,27 0 0,0 43.93,23.69 Z"
+  // 11 de 12 posições (30° cada) — gap na posição 4 (~4h no relógio)
   const positions = [0,1,2,3,5,6,7,8,9,10,11]
   return (
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
       {positions.map(i => (
-        <path
-          key={i}
-          d={seg}
-          fill="#E5501E"
-          transform={`rotate(${i * 30}, 50, 50)`}
-        />
+        <path key={i} d={seg} fill="#E5501E"
+          transform={`rotate(${i * 30}, 50, 50)`} />
       ))}
     </svg>
   )
@@ -48,12 +47,12 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 flex items-center justify-center">
+          <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
             <ChuaLogo />
           </div>
-          <div>
-            <p className="text-sm font-black leading-tight tracking-widest" style={{ color: '#6B7280', letterSpacing: '0.18em' }}>CHUÁ</p>
-            <p className="text-[9px] font-medium leading-tight tracking-widest uppercase" style={{ color: '#9CA3AF', letterSpacing: '0.12em' }}>Além da Distribuição</p>
+          <div className="flex flex-col justify-center">
+            <p className="font-black leading-none" style={{ color: '#6D7280', fontSize: '18px', letterSpacing: '0.15em', fontFamily: 'inherit' }}>CHUÁ</p>
+            <p className="leading-none mt-0.5" style={{ color: '#A0A5AE', fontSize: '8px', letterSpacing: '0.22em', fontWeight: 500 }}>ALÉM DA DISTRIBUIÇÃO</p>
           </div>
         </div>
         {onClose && (
