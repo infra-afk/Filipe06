@@ -56,7 +56,14 @@ function BriefingView({ briefing }: { briefing: KanbanCard['briefing'] }) {
     return Array.isArray(v) && (v as string[]).length > 0
   })
 
-  if (secoes.length === 0) return null
+  if (secoes.length === 0) return (
+    <div className="px-4 py-4 border-t border-slate-100 bg-slate-50">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Documentação do Canvas</p>
+      <p className="text-xs text-slate-400 italic">
+        Nenhuma seção documentada ainda. Abra o card no Kanban → aba <strong>Briefing do Canvas</strong> para preencher.
+      </p>
+    </div>
+  )
 
   return (
     <div className="p-4 space-y-3 bg-slate-50 border-t border-slate-100">
@@ -218,12 +225,7 @@ function CardRegistro({ card }: { card: KanbanCard }) {
               <p className="text-sm text-slate-600">{card.observacoes}</p>
             </div>
           )}
-          {temBriefing && <BriefingView briefing={card.briefing} />}
-          {!temBriefing && (
-            <div className="px-5 py-4 border-t border-slate-100 text-center">
-              <p className="text-xs text-slate-300">Este card não possui briefing do Canvas</p>
-            </div>
-          )}
+          <BriefingView briefing={card.briefing} />
         </>
       )}
     </div>

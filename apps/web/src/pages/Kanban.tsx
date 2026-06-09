@@ -287,59 +287,114 @@ const BRIEFING_SECTIONS: { key: keyof KanbanCard['briefing']; label: string; col
   { key: 'agentes',     label: 'Agentes IA',   color: '#0f766e', icon: Bot         },
 ]
 
-function BriefingView({ briefing }: { briefing: KanbanCard['briefing'] }) {
-  const secoes = BRIEFING_SECTIONS.filter(s => {
-    const val = briefing[s.key]
-    return Array.isArray(val) && (val as string[]).length > 0
-  })
+// ─── Briefing Editável ────────────────────────────────────────────────────────
 
-  if (secoes.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-10 text-slate-300">
-        <FileText size={28} />
-        <p className="text-sm mt-2 font-medium text-slate-400">Nenhum dado de briefing disponível</p>
-        <p className="text-xs text-slate-300 mt-1">Este card não veio do Canvas Operacional</p>
-      </div>
-    )
+function BriefingEditor({
+  briefing, onChange,
+}: {
+  briefing: KanbanCard['briefing']
+  onChange: (b: KanbanCard['briefing']) => void
+}) {
+  const [inputs, setInputs] = useState<Record<string, string>>({})
+
+  function addItem(key: string) {
+    const val = (inputs[key] || '').trim()
+    if (!val) return
+    const current = (briefing[key as keyof KanbanCard['briefing']] as string[]) || []
+    if (current.includes(val)) return
+    onChange({ ...briefing, [key]: [...current, val] })
+    setInputs(p => ({ ...p, [key]: '' }))
+  }
+
+  function removeItem(key: string, item: string) {
+    const current = (briefing[key as keyof KanbanCard['briefing']] as string[]) || []
+    onChange({ ...briefing, [key]: current.filter(x => x !== item) })
+  }
+
+  function setNota(key: string, val: string) {
+    onChange({ ...briefing, notas: { ...(briefing.notas || {}), [key]: val } })
   }
 
   return (
     <div className="space-y-3">
-      {briefing.titulo && (
-        <div className="rounded-xl p-3 text-white font-bold text-sm" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
-          {briefing.titulo}
-        </div>
-      )}
-      <div className="grid grid-cols-1 gap-3">
-        {secoes.map(s => {
-          const Icon = s.icon
-          const items = briefing[s.key] as string[]
-          const nota = briefing.notas?.[s.key as string]
-          return (
-            <div key={s.key as string} className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100"
-                style={{ background: s.color + '12' }}>
-                <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.color }}>
-                  <Icon size={12} className="text-white" />
-                </div>
-                <span className="text-xs font-bold text-slate-700">{s.label}</span>
-              </div>
-              <div className="p-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {items.map(item => (
-                    <span key={item} className="text-xs px-2.5 py-1 rounded-full font-medium text-white"
-                      style={{ background: s.color }}>
-                      {item}
-                    </span>
-                  ))}
-                </div>
-                {nota && <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-50 pt-2">{nota}</p>}
-              </div>
-            </div>
-          )
-        })}
+      {/* Título */}
+      <div>
+        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Título do Dashboard</label>
+        <input
+          value={briefing.titulo || ''}
+          onChange={e => onChange({ ...briefing, titulo: e.target.value })}
+          placeholder="Ex: Dashboard Comercial Q2 2026"
+          className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+        />
       </div>
+
+      <p className="text-[11px] text-slate-400 bg-blue-50 rounded-xl px-3 py-2 border border-blue-100">
+        📋 Documente cada seção para fins de auditoria. Todos os dados ficam registrados no Formulário.
+      </p>
+
+      {/* Seções */}
+      {BRIEFING_SECTIONS.map(s => {
+        const Icon = s.icon
+        const items = (briefing[s.key] as string[]) || []
+        const nota = briefing.notas?.[s.key as string] || ''
+        return (
+          <div key={s.key as string} className="rounded-xl border border-slate-200 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2" style={{ background: s.color + '18' }}>
+              <div className="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: s.color }}>
+                <Icon size={11} className="text-white" />
+              </div>
+              <span className="text-xs font-bold text-slate-700 flex-1">{s.label}</span>
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full text-white" style={{ background: s.color }}>
+                {items.length}
+              </span>
+            </div>
+
+            {/* Tags existentes */}
+            {items.length > 0 && (
+              <div className="px-3 pt-2 flex flex-wrap gap-1.5">
+                {items.map(item => (
+                  <span key={item} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full font-medium text-white"
+                    style={{ background: s.color }}>
+                    {item}
+                    <button onClick={() => removeItem(s.key as string, item)} className="hover:opacity-70 ml-0.5">
+                      <X size={9} />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Input para adicionar */}
+            <div className="flex gap-2 px-3 py-2">
+              <input
+                value={inputs[s.key as string] || ''}
+                onChange={e => setInputs(p => ({ ...p, [s.key as string]: e.target.value }))}
+                onKeyDown={e => e.key === 'Enter' && addItem(s.key as string)}
+                placeholder={`Adicionar item em ${s.label}...`}
+                className="flex-1 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-blue-400 bg-white"
+              />
+              <button
+                onClick={() => addItem(s.key as string)}
+                disabled={!(inputs[s.key as string] || '').trim()}
+                className="px-2.5 py-1.5 text-xs font-bold text-white rounded-lg disabled:opacity-30 transition-all"
+                style={{ background: s.color }}
+              >
+                +
+              </button>
+            </div>
+
+            {/* Nota */}
+            <div className="px-3 pb-2.5">
+              <input
+                value={nota}
+                onChange={e => setNota(s.key as string, e.target.value)}
+                placeholder="Anotação / contexto (opcional)..."
+                className="w-full border border-slate-100 rounded-lg px-2.5 py-1.5 text-xs outline-none focus:border-blue-300 bg-slate-50 text-slate-500 placeholder-slate-300"
+              />
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -392,7 +447,10 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
         <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
 
         {activeTab === 'briefing' ? (
-          <BriefingView briefing={form.briefing} />
+          <BriefingEditor
+            briefing={form.briefing}
+            onChange={b => setForm(p => ({ ...p, briefing: b }))}
+          />
         ) : (<>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome *</label>
