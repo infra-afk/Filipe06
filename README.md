@@ -1,4 +1,4 @@
-# CHUÁ — Dashboard Executivo
+# CHUÁ — Solicitações de Dashboard 
 
 Plataforma de gestão operacional com Canvas Estratégico, Kanban de dashboards e registro de documentação para auditoria.
 
