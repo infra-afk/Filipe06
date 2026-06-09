@@ -4,7 +4,7 @@ import {
   Inbox, Search, Code2, Eye, MoreHorizontal, Edit2, Trash2,
   ChevronDown, ChevronRight, Layers, SlidersHorizontal,
   Zap, Flag, Star, PauseCircle, FileOutput, Tag, Lock,
-  GripVertical, Filter, Users,
+  GripVertical, Filter, Users, Archive, FileText,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,6 +22,15 @@ interface KanbanCard {
   coluna: string
   observacoes: string
   tags: string[]
+  // datas por etapa
+  dataAnalise?: string
+  dataDesenvolvimento?: string
+  dataRevisao?: string
+  dataConcluido?: string
+}
+
+interface CardArquivado extends KanbanCard {
+  dataArquivamento: string
 }
 
 interface KanbanColumn {
@@ -251,12 +260,25 @@ function ColumnModal({ draft, onSave, onClose, onDelete }: {
 type CardDraft = Omit<KanbanCard, 'id'> & { id?: string }
 
 function blankCard(coluna: string): CardDraft {
-  return { nome: '', responsavel: '', prioridade: 'Média', coluna, dataEntrada: new Date().toISOString().slice(0, 10), prazo: '', observacoes: '', tags: [] }
+  return {
+    nome: '', responsavel: '', prioridade: 'Média', coluna,
+    dataEntrada: new Date().toISOString().slice(0, 10),
+    prazo: '', observacoes: '', tags: [],
+    dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '',
+  }
 }
 
-function CardModal({ draft, columns, onSave, onClose, onDelete }: {
+const ETAPA_DATAS: { campo: keyof KanbanCard; label: string; col: string }[] = [
+  { campo: 'dataEntrada',        label: 'Entrada',          col: 'entrada'         },
+  { campo: 'dataAnalise',        label: 'Em Análise',       col: 'analise'         },
+  { campo: 'dataDesenvolvimento',label: 'Em Desenvolvimento',col: 'desenvolvimento' },
+  { campo: 'dataRevisao',        label: 'Em Revisão',       col: 'revisao'         },
+  { campo: 'dataConcluido',      label: 'Concluído',        col: 'concluido'       },
+]
+
+function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
   draft: CardDraft; columns: KanbanColumn[]
-  onSave: (d: CardDraft) => void; onClose: () => void; onDelete?: () => void
+  onSave: (d: CardDraft) => void; onClose: () => void; onDelete?: () => void; onArquivar?: () => void
 }) {
   const [form, setForm] = useState(draft)
   const [tagInput, setTagInput] = useState('')
@@ -327,6 +349,30 @@ function CardModal({ draft, columns, onSave, onClose, onDelete }: {
             </select>
           </div>
 
+          {/* Datas por etapa */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 block">
+              Datas por Etapa
+            </label>
+            <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+              {ETAPA_DATAS.map(e => (
+                <div key={e.campo} className="flex items-center gap-3 px-3 py-2 bg-white hover:bg-slate-50 transition-colors">
+                  <span className="text-xs font-semibold text-slate-500 w-36 flex-shrink-0">{e.label}</span>
+                  <input
+                    type="date"
+                    value={(form as any)[e.campo] || ''}
+                    onChange={ev => set(e.campo, ev.target.value)}
+                    className="flex-1 text-sm outline-none text-slate-700 bg-transparent border-0 focus:ring-0"
+                  />
+                  {(form as any)[e.campo] && (
+                    <span className="text-[10px] text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded-full flex-shrink-0">✓</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1.5">Registre quando o card passou por cada etapa para rastreabilidade e auditoria.</p>
+          </div>
+
           {/* Tags */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tags</label>
@@ -358,9 +404,17 @@ function CardModal({ draft, columns, onSave, onClose, onDelete }: {
         </div>
 
         <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between">
-          {onDelete ? (
-            <button onClick={onDelete} className="text-xs font-semibold text-red-500 hover:text-red-700">Excluir</button>
-          ) : <span />}
+          <div className="flex gap-2">
+            {onDelete && (
+              <button onClick={onDelete} className="text-xs font-semibold text-red-500 hover:text-red-700">Excluir</button>
+            )}
+            {onArquivar && draft.coluna === 'concluido' && (
+              <button onClick={onArquivar}
+                className="flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-800 border border-teal-200 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-xl transition-all">
+                <Archive size={12} /> Arquivar no Relatório
+              </button>
+            )}
+          </div>
           <div className="flex gap-2">
             <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Cancelar</button>
             <button onClick={() => { if (form.nome.trim()) onSave(form) }} disabled={!form.nome.trim()}
@@ -812,6 +866,10 @@ function FormRapido({ columns, onSave }: {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
+function loadArquivados(): CardArquivado[] {
+  try { return JSON.parse(localStorage.getItem('kanban_arquivados') || '[]') } catch { return [] }
+}
+
 export default function Kanban() {
   const [columns, setColumns] = useState<KanbanColumn[]>(INIT_COLS)
   const [cards,   setCards]   = useState<KanbanCard[]>(loadCards)
@@ -819,6 +877,8 @@ export default function Kanban() {
   const [overCol, setOverCol] = useState<string | null>(null)
   const [cardModal, setCardModal] = useState<CardDraft | null>(null)
   const [colModal,  setColModal]  = useState<ColDraft | null>(null)
+  const [arquivados, setArquivados] = useState<CardArquivado[]>(loadArquivados)
+  const [mostrarRelatorio, setMostrarRelatorio] = useState(false)
 
   // Filtros
   const [search,    setSearch]    = useState('')
@@ -860,6 +920,17 @@ export default function Kanban() {
     setCardModal(null)
   }
   function deleteCard(id: string) { setCards(p => p.filter(c => c.id !== id)); setCardModal(null) }
+
+  function arquivarCard(id: string) {
+    const card = cards.find(c => c.id === id)
+    if (!card) return
+    const arquivado: CardArquivado = { ...card, dataArquivamento: new Date().toISOString().slice(0, 10) }
+    const novos = [...arquivados, arquivado]
+    setArquivados(novos)
+    localStorage.setItem('kanban_arquivados', JSON.stringify(novos))
+    setCards(p => p.filter(c => c.id !== id))
+    setCardModal(null)
+  }
 
   // Columns CRUD
   function saveColumn(d: ColDraft) {
@@ -927,6 +998,18 @@ export default function Kanban() {
           <button onClick={() => setColModal(blankCol())}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-blue-300 transition-all">
             <Plus size={12} /> Coluna
+          </button>
+
+          <button onClick={() => setMostrarRelatorio(p => !p)}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
+              mostrarRelatorio ? 'bg-teal-600 text-white border-teal-600' : 'bg-white text-slate-600 border-slate-200 hover:border-teal-300'
+            }`}>
+            <FileText size={12} /> Relatório
+            {arquivados.length > 0 && (
+              <span className={`rounded-full w-4 h-4 text-[10px] font-bold flex items-center justify-center ${mostrarRelatorio ? 'bg-white text-teal-600' : 'bg-teal-600 text-white'}`}>
+                {arquivados.length}
+              </span>
+            )}
           </button>
 
           <button onClick={() => setCardModal(blankCard(columns[0]?.id || ''))}
@@ -1112,12 +1195,98 @@ export default function Kanban() {
       {cardModal && (
         <CardModal draft={cardModal} columns={columns}
           onSave={saveCard} onClose={() => setCardModal(null)}
-          onDelete={cardModal.id ? () => deleteCard(cardModal.id!) : undefined} />
+          onDelete={cardModal.id ? () => deleteCard(cardModal.id!) : undefined}
+          onArquivar={cardModal.id ? () => arquivarCard(cardModal.id!) : undefined} />
       )}
       {colModal && (
         <ColumnModal draft={colModal}
           onSave={saveColumn} onClose={() => setColModal(null)}
           onDelete={colModal.id ? () => deleteColumn(colModal.id!) : undefined} />
+      )}
+
+      {/* ── Relatório de Arquivados ── */}
+      {mostrarRelatorio && (
+        <div className="mt-2 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-gradient-to-r from-teal-50 to-white">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-teal-600 flex items-center justify-center">
+                <Archive size={15} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Relatório de Dashboards Arquivados</h3>
+                <p className="text-[11px] text-slate-400">{arquivados.length} registro{arquivados.length !== 1 ? 's' : ''} arquivado{arquivados.length !== 1 ? 's' : ''}</p>
+              </div>
+            </div>
+          </div>
+
+          {arquivados.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-slate-300">
+              <Archive size={32} />
+              <p className="text-sm mt-2 font-medium">Nenhum card arquivado ainda</p>
+              <p className="text-xs mt-1 text-slate-400">Mova cards para "Concluído" e arquive-os aqui</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Dashboard</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Responsável</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Entrada</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Em Análise</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Em Dev.</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Em Revisão</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Concluído</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Arquivado</th>
+                    <th className="text-left px-4 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {arquivados.map(a => {
+                    const p = PRIORITY_CFG[a.prioridade]
+                    return (
+                      <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-slate-800">{a.nome}</p>
+                          {a.tags.length > 0 && (
+                            <div className="flex gap-1 mt-1">
+                              {a.tags.map(t => (
+                                <span key={t} className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${tagColor(t)}`}>{t}</span>
+                              ))}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500">{a.responsavel || '—'}</td>
+                        <td className="px-4 py-3 text-slate-500 text-xs">{a.dataEntrada ? fmt(a.dataEntrada) : '—'}</td>
+                        <td className="px-4 py-3 text-xs">
+                          {a.dataAnalise ? <span className="text-blue-600 font-medium">{fmt(a.dataAnalise)}</span> : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {a.dataDesenvolvimento ? <span className="text-sky-600 font-medium">{fmt(a.dataDesenvolvimento)}</span> : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {a.dataRevisao ? <span className="text-amber-600 font-medium">{fmt(a.dataRevisao)}</span> : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {a.dataConcluido ? <span className="text-green-600 font-medium">{fmt(a.dataConcluido)}</span> : <span className="text-slate-300">—</span>}
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className="text-teal-600 font-semibold bg-teal-50 px-2 py-0.5 rounded-full">{fmt(a.dataArquivamento)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${p.bg} ${p.text}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${p.dot}`} />
+                            {a.prioridade}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Formulário rápido ── */}
