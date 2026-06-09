@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { saveCard } from '../store/kanbanStore'
 import {
   Target, BarChart2, ShoppingCart, Receipt, RefreshCcw,
   FileText, Bell, Lightbulb, Bot, ChevronRight, ChevronLeft,
@@ -289,30 +290,50 @@ export default function CanvasOperacional() {
   const selectedItems = [...(state[step.key] as string[]), ...(state.custom[step.key] || [])]
 
   function gerarBriefingEIrParaKanban() {
-    // Monta o resumo de itens selecionados
-    const secoes = STEPS.map(s => ({
-      label: s.label,
-      itens: [...(state[s.key] as string[]), ...(state.custom[s.key] || [])],
-    })).filter(s => s.itens.length > 0)
+    const pick = (key: StepKey) => [
+      ...(state[key] as string[]),
+      ...(state.custom[key] || []),
+    ]
 
-    const observacoes = secoes.map(s => `${s.label}: ${s.itens.join(', ')}`).join(' | ')
+    const extrasForKey = (key: StepKey): string[] =>
+      Object.entries(state.extras)
+        .filter(([k]) => k.startsWith(key + '_'))
+        .flatMap(([, v]) => v)
 
     const card = {
       id: `canvas_${Date.now()}`,
       nome: state.titulo || 'Dashboard do Canvas',
       responsavel: state.responsavel || '',
+      solicitante: state.solicitante || '',
       dataEntrada: new Date().toISOString().slice(0, 10),
       prazo: '',
-      prioridade: 'Alta',
+      prioridade: 'Alta' as const,
       coluna: 'entrada',
-      observacoes: `Solicitante: ${state.solicitante || '—'} | ${observacoes}`,
+      observacoes: '',
       tags: ['Canvas'],
-      dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '',
+      dataAnalise: '',
+      dataDesenvolvimento: '',
+      dataRevisao: '',
+      dataConcluido: '',
+      dataArquivamento: '',
+      arquivado: false,
+      briefing: {
+        titulo: state.titulo,
+        objetivo:    [...pick('objetivos'),   ...extrasForKey('objetivos')],
+        indicadores: [...pick('indicadores'), ...extrasForKey('indicadores')],
+        vendas:      [...pick('vendas'),      ...extrasForKey('vendas')],
+        despesas:    [...pick('despesas'),    ...extrasForKey('despesas')],
+        devolucoes:  [...pick('devolucoes'),  ...extrasForKey('devolucoes')],
+        dre:         [...pick('dre'),         ...extrasForKey('dre')],
+        alertas:     [...pick('alertas'),     ...extrasForKey('alertas')],
+        decisoes:    [...pick('decisoes'),    ...extrasForKey('decisoes')],
+        agentes:     [...pick('agentes'),     ...extrasForKey('agentes')],
+        extras: state.extras,
+        notas: state.notas as Record<string, string>,
+      },
     }
 
-    const existing = JSON.parse(localStorage.getItem('kanban_from_canvas') || '[]')
-    localStorage.setItem('kanban_from_canvas', JSON.stringify([...existing, card]))
-
+    saveCard(card)
     navigate('/kanban')
   }
 

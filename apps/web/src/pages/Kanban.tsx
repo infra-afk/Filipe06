@@ -2,36 +2,27 @@ import { useState, useRef } from 'react'
 import {
   Plus, X, Calendar, AlertCircle, Clock, CheckCircle2,
   Inbox, Search, Code2, Eye, MoreHorizontal, Edit2, Trash2,
-  ChevronDown, ChevronRight, Layers, SlidersHorizontal,
-  Zap, Flag, Star, PauseCircle, FileOutput, Tag, Lock,
-  GripVertical, Filter, Users, Archive, FileText,
+  ChevronRight, Layers,
+  Zap, Flag, Star, PauseCircle, Lock,
+  Filter, Archive, FileText, Target, BarChart2, ShoppingCart,
+  Receipt, RefreshCcw, Bell, Lightbulb, Bot,
 } from 'lucide-react'
+import {
+  getCards, getArquivados, saveCard as storeSaveCard,
+  arquivarCard as storeArquivarCard, deleteCard as storeDeleteCard,
+  KanbanCard as StoreCard,
+} from '../store/kanbanStore'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Priority = 'Alta' | 'Média' | 'Baixa'
 type SwimlaneMode = 'none' | 'prioridade' | 'responsavel'
 
-interface KanbanCard {
-  id: string
-  nome: string
-  responsavel: string
-  dataEntrada: string
-  prazo: string
-  prioridade: Priority
-  coluna: string
-  observacoes: string
-  tags: string[]
-  // datas por etapa
-  dataAnalise?: string
-  dataDesenvolvimento?: string
-  dataRevisao?: string
-  dataConcluido?: string
-}
+// Use the store's KanbanCard type directly
+type KanbanCard = StoreCard
 
-interface CardArquivado extends KanbanCard {
-  dataArquivamento: string
-}
+// CardArquivado is now just KanbanCard (arquivado: true) — keep alias for compat
+type CardArquivado = KanbanCard
 
 interface KanbanColumn {
   id: string
@@ -87,23 +78,28 @@ const INIT_COLS: KanbanColumn[] = [
   { id: 'concluido',      label: 'Concluído',           accent: '#059669', gradient: 'from-emerald-600 to-teal-500',   iconKey: 'check', wip: 0, collapsed: false },
 ]
 
+function blankBriefing(): KanbanCard['briefing'] {
+  return {
+    titulo: '', objetivo: [], indicadores: [], vendas: [], despesas: [],
+    devolucoes: [], dre: [], alertas: [], decisoes: [], agentes: [],
+    extras: {}, notas: {},
+  }
+}
+
 function loadCards(): KanbanCard[] {
+  const stored = getCards()
+  if (stored.length > 0) return stored
+  // Seed default cards on first load
   const base: KanbanCard[] = [
-    { id: '1', nome: 'Dashboard Comercial',    responsavel: 'Ana Lima',     dataEntrada: '2026-06-01', prazo: '2026-06-20', prioridade: 'Alta',  coluna: 'desenvolvimento', observacoes: 'Foco em meta vs realizado por vendedor', tags: ['Vendas','Urgente'] },
-    { id: '2', nome: 'Dashboard Financeiro',   responsavel: 'Carlos Melo',  dataEntrada: '2026-05-28', prazo: '2026-06-15', prioridade: 'Alta',  coluna: 'revisao',          observacoes: '', tags: ['DRE'] },
-    { id: '3', nome: 'Dashboard de RH',        responsavel: 'Marina Souza', dataEntrada: '2026-06-05', prazo: '2026-06-30', prioridade: 'Média', coluna: 'analise',          observacoes: 'Incluir turnover e absenteísmo', tags: ['RH'] },
-    { id: '4', nome: 'Dashboard de Operações', responsavel: 'João Silva',   dataEntrada: '2026-06-07', prazo: '2026-07-10', prioridade: 'Baixa', coluna: 'entrada',          observacoes: '', tags: [] },
-    { id: '5', nome: 'Dashboard Executivo',    responsavel: 'Filipe',       dataEntrada: '2026-05-10', prazo: '2026-05-30', prioridade: 'Alta',  coluna: 'concluido',        observacoes: 'Entregue na data combinada', tags: ['Exec'] },
-    { id: '6', nome: 'Dashboard de Estoque',   responsavel: 'Bia Alves',    dataEntrada: '2026-06-08', prazo: '2026-07-05', prioridade: 'Média', coluna: 'entrada',          observacoes: '', tags: [] },
-    { id: '7', nome: 'Dashboard de Suporte',   responsavel: 'Carlos Melo',  dataEntrada: '2026-06-09', prazo: '2026-07-20', prioridade: 'Baixa', coluna: 'analise',          observacoes: '', tags: ['Suporte'] },
+    { id: '1', nome: 'Dashboard Comercial',    responsavel: 'Ana Lima',     solicitante: '', dataEntrada: '2026-06-01', prazo: '2026-06-20', prioridade: 'Alta',  coluna: 'desenvolvimento', observacoes: 'Foco em meta vs realizado por vendedor', tags: ['Vendas','Urgente'], dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
+    { id: '2', nome: 'Dashboard Financeiro',   responsavel: 'Carlos Melo',  solicitante: '', dataEntrada: '2026-05-28', prazo: '2026-06-15', prioridade: 'Alta',  coluna: 'revisao',          observacoes: '', tags: ['DRE'],           dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
+    { id: '3', nome: 'Dashboard de RH',        responsavel: 'Marina Souza', solicitante: '', dataEntrada: '2026-06-05', prazo: '2026-06-30', prioridade: 'Média', coluna: 'analise',          observacoes: 'Incluir turnover e absenteísmo', tags: ['RH'], dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
+    { id: '4', nome: 'Dashboard de Operações', responsavel: 'João Silva',   solicitante: '', dataEntrada: '2026-06-07', prazo: '2026-07-10', prioridade: 'Baixa', coluna: 'entrada',          observacoes: '', tags: [],               dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
+    { id: '5', nome: 'Dashboard Executivo',    responsavel: 'Filipe',       solicitante: '', dataEntrada: '2026-05-10', prazo: '2026-05-30', prioridade: 'Alta',  coluna: 'concluido',        observacoes: 'Entregue na data combinada', tags: ['Exec'], dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
+    { id: '6', nome: 'Dashboard de Estoque',   responsavel: 'Bia Alves',    solicitante: '', dataEntrada: '2026-06-08', prazo: '2026-07-05', prioridade: 'Média', coluna: 'entrada',          observacoes: '', tags: [],               dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
+    { id: '7', nome: 'Dashboard de Suporte',   responsavel: 'Carlos Melo',  solicitante: '', dataEntrada: '2026-06-09', prazo: '2026-07-20', prioridade: 'Baixa', coluna: 'analise',          observacoes: '', tags: ['Suporte'],       dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
   ]
-  try {
-    const pending = JSON.parse(localStorage.getItem('kanban_from_canvas') || '[]') as KanbanCard[]
-    if (pending.length > 0) {
-      localStorage.removeItem('kanban_from_canvas')
-      return [...base, ...pending]
-    }
-  } catch { /* ignore */ }
+  base.forEach(c => storeSaveCard(c))
   return base
 }
 
@@ -261,14 +257,16 @@ type CardDraft = Omit<KanbanCard, 'id'> & { id?: string }
 
 function blankCard(coluna: string): CardDraft {
   return {
-    nome: '', responsavel: '', prioridade: 'Média', coluna,
+    nome: '', responsavel: '', solicitante: '', prioridade: 'Média', coluna,
     dataEntrada: new Date().toISOString().slice(0, 10),
     prazo: '', observacoes: '', tags: [],
     dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '',
+    dataArquivamento: '', arquivado: false,
+    briefing: blankBriefing(),
   }
 }
 
-const ETAPA_DATAS: { campo: keyof KanbanCard; label: string; col: string }[] = [
+const ETAPA_DATAS: { campo: string; label: string; col: string }[] = [
   { campo: 'dataEntrada',        label: 'Entrada',          col: 'entrada'         },
   { campo: 'dataAnalise',        label: 'Em Análise',       col: 'analise'         },
   { campo: 'dataDesenvolvimento',label: 'Em Desenvolvimento',col: 'desenvolvimento' },
@@ -276,12 +274,83 @@ const ETAPA_DATAS: { campo: keyof KanbanCard; label: string; col: string }[] = [
   { campo: 'dataConcluido',      label: 'Concluído',        col: 'concluido'       },
 ]
 
+// Seções do briefing com metadata visual
+const BRIEFING_SECTIONS: { key: keyof KanbanCard['briefing']; label: string; color: string; icon: React.ElementType }[] = [
+  { key: 'objetivo',    label: 'Objetivos',    color: '#2563eb', icon: Target      },
+  { key: 'indicadores', label: 'Indicadores',  color: '#1d4ed8', icon: BarChart2   },
+  { key: 'vendas',      label: 'Vendas',       color: '#059669', icon: ShoppingCart},
+  { key: 'despesas',    label: 'Despesas',     color: '#dc2626', icon: Receipt     },
+  { key: 'devolucoes',  label: 'Devoluções',   color: '#f97316', icon: RefreshCcw  },
+  { key: 'dre',         label: 'DRE',          color: '#0d9488', icon: FileText    },
+  { key: 'alertas',     label: 'Alertas',      color: '#e11d48', icon: Bell        },
+  { key: 'decisoes',    label: 'Decisões',     color: '#d97706', icon: Lightbulb   },
+  { key: 'agentes',     label: 'Agentes IA',   color: '#0f766e', icon: Bot         },
+]
+
+function BriefingView({ briefing }: { briefing: KanbanCard['briefing'] }) {
+  const secoes = BRIEFING_SECTIONS.filter(s => {
+    const val = briefing[s.key]
+    return Array.isArray(val) && (val as string[]).length > 0
+  })
+
+  if (secoes.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 text-slate-300">
+        <FileText size={28} />
+        <p className="text-sm mt-2 font-medium text-slate-400">Nenhum dado de briefing disponível</p>
+        <p className="text-xs text-slate-300 mt-1">Este card não veio do Canvas Operacional</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      {briefing.titulo && (
+        <div className="rounded-xl p-3 text-white font-bold text-sm" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
+          {briefing.titulo}
+        </div>
+      )}
+      <div className="grid grid-cols-1 gap-3">
+        {secoes.map(s => {
+          const Icon = s.icon
+          const items = briefing[s.key] as string[]
+          const nota = briefing.notas?.[s.key as string]
+          return (
+            <div key={s.key as string} className="bg-white rounded-xl border border-slate-100 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100"
+                style={{ background: s.color + '12' }}>
+                <div className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: s.color }}>
+                  <Icon size={12} className="text-white" />
+                </div>
+                <span className="text-xs font-bold text-slate-700">{s.label}</span>
+              </div>
+              <div className="p-3">
+                <div className="flex flex-wrap gap-1.5">
+                  {items.map(item => (
+                    <span key={item} className="text-xs px-2.5 py-1 rounded-full font-medium text-white"
+                      style={{ background: s.color }}>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+                {nota && <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-50 pt-2">{nota}</p>}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
   draft: CardDraft; columns: KanbanColumn[]
   onSave: (d: CardDraft) => void; onClose: () => void; onDelete?: () => void; onArquivar?: () => void
 }) {
   const [form, setForm] = useState(draft)
   const [tagInput, setTagInput] = useState('')
+  const [activeTab, setActiveTab] = useState<'detalhes' | 'briefing'>('detalhes')
   const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
 
   function addTag() {
@@ -306,7 +375,25 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100"><X size={15} className="text-slate-500" /></button>
         </div>
 
-        <div className="p-5 space-y-4 max-h-[72vh] overflow-y-auto">
+        {/* Tabs */}
+        <div className="flex border-b border-slate-100">
+          {(['detalhes', 'briefing'] as const).map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2.5 text-xs font-bold capitalize transition-all ${
+                activeTab === tab
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50'
+                  : 'text-slate-400 hover:text-slate-600'
+              }`}>
+              {tab === 'detalhes' ? 'Detalhes' : 'Briefing do Canvas'}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[65vh] overflow-y-auto">
+
+        {activeTab === 'briefing' ? (
+          <BriefingView briefing={form.briefing} />
+        ) : (<>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Nome *</label>
             <input value={form.nome} onChange={e => set('nome', e.target.value)} placeholder="Nome do dashboard"
@@ -320,12 +407,18 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
                 className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
             </div>
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</label>
-              <select value={form.prioridade} onChange={e => set('prioridade', e.target.value)}
-                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 bg-white transition-all">
-                <option>Alta</option><option>Média</option><option>Baixa</option>
-              </select>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Solicitante</label>
+              <input value={form.solicitante} onChange={e => set('solicitante', e.target.value)} placeholder="Nome"
+                className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
             </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioridade</label>
+            <select value={form.prioridade} onChange={e => set('prioridade', e.target.value)}
+              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 bg-white transition-all">
+              <option>Alta</option><option>Média</option><option>Baixa</option>
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -401,6 +494,7 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
               placeholder="Detalhes adicionais..." rows={3}
               className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all" />
           </div>
+        </>)}
         </div>
 
         <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-between">
@@ -634,7 +728,7 @@ function KColumn({ col, cards, dragId, overCol, swimRow,
   )
 }
 
-// ─── Formulário Rápido ────────────────────────────────────────────────────────
+// ─── Formulário Rápido (inline) ───────────────────────────────────────────────
 
 function FormRapido({ columns, onSave }: {
   columns: KanbanColumn[]
@@ -866,10 +960,6 @@ function FormRapido({ columns, onSave }: {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
-function loadArquivados(): CardArquivado[] {
-  try { return JSON.parse(localStorage.getItem('kanban_arquivados') || '[]') } catch { return [] }
-}
-
 export default function Kanban() {
   const [columns, setColumns] = useState<KanbanColumn[]>(INIT_COLS)
   const [cards,   setCards]   = useState<KanbanCard[]>(loadCards)
@@ -877,7 +967,7 @@ export default function Kanban() {
   const [overCol, setOverCol] = useState<string | null>(null)
   const [cardModal, setCardModal] = useState<CardDraft | null>(null)
   const [colModal,  setColModal]  = useState<ColDraft | null>(null)
-  const [arquivados, setArquivados] = useState<CardArquivado[]>(loadArquivados)
+  const [arquivados, setArquivados] = useState<CardArquivado[]>(() => getArquivados())
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false)
 
   // Filtros
@@ -909,26 +999,43 @@ export default function Kanban() {
 
   // Drag
   function handleDrop(colId: string) {
-    if (dragId) setCards(p => p.map(c => c.id === dragId ? { ...c, coluna: colId } : c))
+    if (dragId) {
+      setCards(p => {
+        const updated = p.map(c => {
+          if (c.id !== dragId) return c
+          const next = { ...c, coluna: colId }
+          storeSaveCard(next)
+          return next
+        })
+        return updated
+      })
+    }
     setDragId(null); setOverCol(null)
   }
 
   // Cards CRUD
   function saveCard(d: CardDraft) {
-    if (d.id) setCards(p => p.map(c => c.id === d.id ? { ...c, ...d, id: c.id } : c))
-    else       setCards(p => [...p, { ...d, id: `k-${Date.now()}` }])
+    let updated: KanbanCard
+    if (d.id) {
+      updated = { ...d, id: d.id } as KanbanCard
+      setCards(p => p.map(c => c.id === d.id ? updated : c))
+    } else {
+      updated = { ...d, id: `k-${Date.now()}` } as KanbanCard
+      setCards(p => [...p, updated])
+    }
+    storeSaveCard(updated)
     setCardModal(null)
   }
-  function deleteCard(id: string) { setCards(p => p.filter(c => c.id !== id)); setCardModal(null) }
+  function deleteCard(id: string) {
+    setCards(p => p.filter(c => c.id !== id))
+    storeDeleteCard(id)
+    setCardModal(null)
+  }
 
   function arquivarCard(id: string) {
-    const card = cards.find(c => c.id === id)
-    if (!card) return
-    const arquivado: CardArquivado = { ...card, dataArquivamento: new Date().toISOString().slice(0, 10) }
-    const novos = [...arquivados, arquivado]
-    setArquivados(novos)
-    localStorage.setItem('kanban_arquivados', JSON.stringify(novos))
+    storeArquivarCard(id)
     setCards(p => p.filter(c => c.id !== id))
+    setArquivados(getArquivados())
     setCardModal(null)
   }
 
