@@ -9,6 +9,7 @@ import {
   UserCheck, UserX, MessageSquare, BellRing,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -909,32 +910,82 @@ function SecaoSeguranca() {
 }
 
 function SecaoAparencia() {
-  const [tema, setTema] = useState<'light' | 'dark' | 'auto'>('light')
+  const { theme, setTheme } = useTheme()
   const [saved, setSaved] = useState(false)
+
+  const temas = [
+    {
+      key: 'claro' as const, label: 'Claro', icon: Sun,
+      preview: (
+        <div className="w-full h-16 rounded-xl border border-slate-200 bg-white flex flex-col gap-1 p-2 overflow-hidden">
+          <div className="h-2 w-16 bg-slate-200 rounded-full" />
+          <div className="h-2 w-10 bg-slate-100 rounded-full" />
+          <div className="flex gap-1 mt-1">
+            <div className="h-5 flex-1 bg-blue-100 rounded-lg" />
+            <div className="h-5 flex-1 bg-slate-100 rounded-lg" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'escuro' as const, label: 'Escuro', icon: Moon,
+      preview: (
+        <div className="w-full h-16 rounded-xl border border-slate-700 bg-slate-900 flex flex-col gap-1 p-2 overflow-hidden">
+          <div className="h-2 w-16 bg-slate-600 rounded-full" />
+          <div className="h-2 w-10 bg-slate-700 rounded-full" />
+          <div className="flex gap-1 mt-1">
+            <div className="h-5 flex-1 bg-blue-900 rounded-lg" />
+            <div className="h-5 flex-1 bg-slate-700 rounded-lg" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'automatico' as const, label: 'Automático', icon: Monitor,
+      preview: (
+        <div className="w-full h-16 rounded-xl border border-slate-300 overflow-hidden flex">
+          <div className="flex-1 bg-white flex flex-col gap-1 p-2">
+            <div className="h-1.5 w-8 bg-slate-200 rounded-full" />
+            <div className="h-1.5 w-5 bg-slate-100 rounded-full" />
+          </div>
+          <div className="flex-1 bg-slate-900 flex flex-col gap-1 p-2">
+            <div className="h-1.5 w-8 bg-slate-600 rounded-full" />
+            <div className="h-1.5 w-5 bg-slate-700 rounded-full" />
+          </div>
+        </div>
+      ),
+    },
+  ]
+
+  function salvar() {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
   return (
     <div className="space-y-4">
       <SectionCard title="Tema da Interface" icon={Palette}>
-        <div className="grid grid-cols-3 gap-3">
-          {[
-            { key: 'light', label: 'Claro',      icon: Sun,     preview: 'bg-white border-slate-200' },
-            { key: 'dark',  label: 'Escuro',     icon: Moon,    preview: 'bg-slate-800 border-slate-700' },
-            { key: 'auto',  label: 'Automático', icon: Monitor, preview: 'bg-gradient-to-br from-white to-slate-800 border-slate-300' },
-          ].map(({ key, label, icon: Icon, preview }) => (
-            <button key={key} onClick={() => setTema(key as any)}
-              className={`p-4 rounded-2xl border-2 text-left transition-all ${tema === key ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-slate-300'}`}>
-              <div className={`w-full h-12 rounded-xl border mb-3 ${preview}`} />
-              <div className="flex items-center gap-1.5">
-                <Icon size={13} className={tema === key ? 'text-blue-600' : 'text-slate-400'} />
-                <span className={`text-xs font-semibold ${tema === key ? 'text-blue-700' : 'text-slate-600'}`}>{label}</span>
-                {tema === key && <CheckCircle2 size={12} className="text-blue-500 ml-auto" />}
+        <div className="grid grid-cols-3 gap-4">
+          {temas.map(({ key, label, icon: Icon, preview }) => (
+            <button key={key} onClick={() => setTheme(key)}
+              className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                theme === key ? 'border-blue-500 bg-blue-50' : 'border-slate-200 hover:border-blue-200 hover:bg-slate-50'
+              }`}>
+              {preview}
+              <div className="flex items-center gap-1.5 mt-3">
+                <Icon size={14} className={theme === key ? 'text-blue-600' : 'text-slate-400'} />
+                <span className={`text-sm font-semibold ${theme === key ? 'text-blue-700' : 'text-slate-600'}`}>{label}</span>
+                {theme === key && <CheckCircle2 size={13} className="text-blue-500 ml-auto" />}
               </div>
             </button>
           ))}
         </div>
+        <p className="text-xs text-slate-400 mt-3">
+          O tema é aplicado imediatamente e salvo para a próxima sessão.
+        </p>
       </SectionCard>
       <div className="flex justify-end gap-3">
-        <button className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all">Cancelar</button>
-        <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000) }}
+        <button onClick={salvar}
           className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all">
           {saved ? <><CheckCircle2 size={14} /> Salvo!</> : 'Salvar alterações'}
         </button>

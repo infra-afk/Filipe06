@@ -80,6 +80,8 @@ type CanvasState = {
   [K in StepKey]: string[]
 } & {
   titulo: string
+  responsavel: string
+  solicitante: string
   extras: Record<string, string[]>
   custom: Record<StepKey, string[]>
   notas: Record<StepKey, string>
@@ -87,7 +89,12 @@ type CanvasState = {
 
 function initState(): CanvasState {
   const sel = Object.fromEntries(STEPS.map(s => [s.key, []])) as any
-  return { ...sel, titulo: '', extras: {}, custom: Object.fromEntries(STEPS.map(s => [s.key, []])) as any, notas: Object.fromEntries(STEPS.map(s => [s.key, ''])) as any }
+  return {
+    ...sel, titulo: '', responsavel: '', solicitante: '',
+    extras: {},
+    custom: Object.fromEntries(STEPS.map(s => [s.key, []])) as any,
+    notas: Object.fromEntries(STEPS.map(s => [s.key, ''])) as any,
+  }
 }
 
 // ─── Progresso circular ───────────────────────────────────────────────────────
@@ -293,12 +300,12 @@ export default function CanvasOperacional() {
     const card = {
       id: `canvas_${Date.now()}`,
       nome: state.titulo || 'Dashboard do Canvas',
-      responsavel: '',
+      responsavel: state.responsavel || '',
       dataEntrada: new Date().toISOString().slice(0, 10),
       prazo: '',
       prioridade: 'Alta',
       coluna: 'entrada',
-      observacoes,
+      observacoes: `Solicitante: ${state.solicitante || '—'} | ${observacoes}`,
       tags: ['Canvas'],
       dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '',
     }
@@ -389,10 +396,23 @@ export default function CanvasOperacional() {
               <h2 className="text-white text-2xl font-black mt-0.5">{step.label}</h2>
               <p className="text-white/80 text-sm mt-0.5">{step.descricao}</p>
               {/* Título do canvas exibido em todas as etapas (exceto a primeira onde é digitado) */}
-              {stepIdx > 0 && state.titulo && (
-                <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
-                  <FileOutput size={11} />
-                  {state.titulo}
+              {stepIdx > 0 && (state.titulo || state.responsavel || state.solicitante) && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {state.titulo && (
+                    <span className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                      <FileOutput size={11} /> {state.titulo}
+                    </span>
+                  )}
+                  {state.responsavel && (
+                    <span className="inline-flex items-center gap-1.5 bg-white/15 text-white/90 text-xs font-medium px-3 py-1 rounded-full">
+                      👷 Responsável: {state.responsavel}
+                    </span>
+                  )}
+                  {state.solicitante && (
+                    <span className="inline-flex items-center gap-1.5 bg-white/15 text-white/90 text-xs font-medium px-3 py-1 rounded-full">
+                      👤 Solicitante: {state.solicitante}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -420,6 +440,31 @@ export default function CanvasOperacional() {
                 <p className="text-[11px] text-slate-400 mt-1.5">
                   Este título será exibido em todas as etapas e no briefing final.
                 </p>
+                {/* Responsável e Solicitante */}
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                      Responsável pela elaboração
+                    </label>
+                    <input
+                      value={state.responsavel}
+                      onChange={e => setState(p => ({ ...p, responsavel: e.target.value }))}
+                      placeholder="Quem vai construir o dashboard?"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
+                      Solicitante
+                    </label>
+                    <input
+                      value={state.solicitante}
+                      onChange={e => setState(p => ({ ...p, solicitante: e.target.value }))}
+                      placeholder="Quem está solicitando a criação?"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
             )}
 
