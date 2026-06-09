@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { saveCard } from '../store/kanbanStore'
+import { saveCard, getCards, KanbanCard } from '../store/kanbanStore'
 import {
   Target, BarChart2, ShoppingCart, Receipt, RefreshCcw,
   FileText, Bell, Lightbulb, Bot, ChevronRight, ChevronLeft,
   CheckCircle2, Plus, X, FileOutput, Sparkles, Check,
+  Search, ExternalLink,
 } from 'lucide-react'
 
 // ─── Configuração das etapas ──────────────────────────────────────────────────
@@ -234,6 +235,121 @@ function PlanoFinal({ state, onVoltar }: { state: CanvasState; titulo: string; o
           <X size={14} /> Editar Canvas
         </button>
       </div>
+    </div>
+  )
+}
+
+// ─── Busca de cards existentes no Kanban ─────────────────────────────────────
+
+const COLUNA_CFG: Record<string, { label: string; color: string }> = {
+  entrada:        { label: 'Entrada',           color: '#475569' },
+  analise:        { label: 'Em Análise',         color: '#2563eb' },
+  desenvolvimento:{ label: 'Em Desenvolvimento', color: '#0369a1' },
+  revisao:        { label: 'Em Revisão',         color: '#f59e0b' },
+  concluido:      { label: 'Concluído',          color: '#059669' },
+}
+
+const PRIORITY_DOT: Record<string, string> = {
+  Alta: '#ef4444', Média: '#f59e0b', Baixa: '#22c55e',
+}
+
+function BuscaKanban({ onNavigate }: { onNavigate: () => void }) {
+  const [busca, setBusca] = useState('')
+  const cards = useMemo(() => getCards(), [])
+
+  const filtrados = useMemo(() => {
+    if (!busca.trim()) return []
+    const q = busca.toLowerCase()
+    return cards.filter(c =>
+      c.nome.toLowerCase().includes(q) ||
+      c.responsavel.toLowerCase().includes(q) ||
+      c.solicitante.toLowerCase().includes(q) ||
+      c.tags.some(t => t.toLowerCase().includes(q)) ||
+      (c.briefing?.titulo || '').toLowerCase().includes(q)
+    ).slice(0, 6)
+  }, [busca, cards])
+
+  const colCfg = (col: string) => COLUNA_CFG[col] || { label: col, color: '#94a3b8' }
+
+  return (
+    <div className="border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-slate-50/60">
+      <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+        <Search size={12} /> Pesquisar dashboards já criados no Kanban
+      </p>
+
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          value={busca}
+          onChange={e => setBusca(e.target.value)}
+          placeholder="Buscar por nome, responsável, tag..."
+          className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 bg-white transition-all"
+        />
+        {busca && (
+          <button onClick={() => setBusca('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+            <X size={13} className="text-slate-400 hover:text-slate-600" />
+          </button>
+        )}
+      </div>
+
+      {/* Resultados */}
+      {busca.trim() && (
+        <div className="mt-3 space-y-2">
+          {filtrados.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-3">
+              Nenhum card encontrado para "<strong>{busca}</strong>"
+            </p>
+          ) : (
+            <>
+              <p className="text-[11px] text-slate-400 mb-1">{filtrados.length} resultado{filtrados.length !== 1 ? 's' : ''} encontrado{filtrados.length !== 1 ? 's' : ''}</p>
+              {filtrados.map(card => {
+                const col = colCfg(card.coluna)
+                return (
+                  <div key={card.id}
+                    className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl px-3 py-2.5 hover:border-blue-200 hover:shadow-sm transition-all">
+                    {/* Dot prioridade */}
+                    <div className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: PRIORITY_DOT[card.prioridade] || '#94a3b8' }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{card.nome}</p>
+                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                        {card.responsavel && (
+                          <span className="text-[10px] text-slate-500">{card.responsavel}</span>
+                        )}
+                        {card.tags.slice(0, 2).map(t => (
+                          <span key={t} className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full font-medium">{t}</span>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Status coluna */}
+                    <span className="text-[10px] font-bold px-2 py-1 rounded-full text-white flex-shrink-0"
+                      style={{ background: col.color }}>
+                      {col.label}
+                    </span>
+                  </div>
+                )
+              })}
+              {/* Link para o Kanban */}
+              <button
+                onClick={onNavigate}
+                className="w-full mt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 py-2 hover:bg-blue-50 rounded-xl transition-all">
+                <ExternalLink size={11} /> Ver todos no Kanban
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {!busca.trim() && cards.length > 0 && (
+        <p className="text-[11px] text-slate-400 mt-2 text-center">
+          {cards.length} card{cards.length !== 1 ? 's' : ''} no Kanban · Pesquise para ver se já existe um similar
+        </p>
+      )}
+      {!busca.trim() && cards.length === 0 && (
+        <p className="text-[11px] text-slate-400 mt-2 text-center">
+          Nenhum dashboard criado ainda. Preencha o Canvas para criar o primeiro!
+        </p>
+      )}
     </div>
   )
 }
@@ -487,6 +603,11 @@ export default function CanvasOperacional() {
                   </div>
                 </div>
               </div>
+            )}
+
+            {/* Busca de cards existentes no Kanban — apenas em Objetivos */}
+            {stepIdx === 0 && (
+              <BuscaKanban onNavigate={() => navigate('/kanban')} />
             )}
 
             {/* Tags principais */}
