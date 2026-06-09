@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Target, BarChart2, ShoppingCart, Receipt, RefreshCcw,
   FileText, Bell, Lightbulb, Bot, ChevronRight, ChevronLeft,
@@ -232,10 +233,10 @@ function PlanoFinal({ state, onVoltar }: { state: CanvasState; titulo: string; o
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function CanvasOperacional() {
+  const navigate = useNavigate()
   const [stepIdx, setStepIdx] = useState(0)
   const [state, setState] = useState<CanvasState>(initState)
   const [customInput, setCustomInput] = useState('')
-  const [plano, setPlano] = useState(false)
 
   const step = STEPS[stepIdx]
   const Icon = step.icon
@@ -280,7 +281,33 @@ export default function CanvasOperacional() {
 
   const selectedItems = [...(state[step.key] as string[]), ...(state.custom[step.key] || [])]
 
-  if (plano) return <PlanoFinal state={state} titulo={state.titulo} onVoltar={() => setPlano(false)} />
+  function gerarBriefingEIrParaKanban() {
+    // Monta o resumo de itens selecionados
+    const secoes = STEPS.map(s => ({
+      label: s.label,
+      itens: [...(state[s.key] as string[]), ...(state.custom[s.key] || [])],
+    })).filter(s => s.itens.length > 0)
+
+    const observacoes = secoes.map(s => `${s.label}: ${s.itens.join(', ')}`).join(' | ')
+
+    const card = {
+      id: `canvas_${Date.now()}`,
+      nome: state.titulo || 'Dashboard do Canvas',
+      responsavel: '',
+      dataEntrada: new Date().toISOString().slice(0, 10),
+      prazo: '',
+      prioridade: 'Alta',
+      coluna: 'entrada',
+      observacoes,
+      tags: ['Canvas'],
+      dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '',
+    }
+
+    const existing = JSON.parse(localStorage.getItem('kanban_from_canvas') || '[]')
+    localStorage.setItem('kanban_from_canvas', JSON.stringify([...existing, card]))
+
+    navigate('/kanban')
+  }
 
   return (
     <div className="flex gap-5 h-full min-h-0" style={{ minHeight: '600px' }}>
@@ -530,10 +557,10 @@ export default function CanvasOperacional() {
               </button>
             ) : (
               <button
-                onClick={() => setPlano(true)}
+                onClick={gerarBriefingEIrParaKanban}
                 className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition-all"
                 style={{ background: `linear-gradient(135deg,${step.from},${step.to})` }}>
-                <FileOutput size={15} /> Gerar Briefing <ChevronRight size={15} />
+                <FileOutput size={15} /> Gerar Briefing e ir para o Kanban <ChevronRight size={15} />
               </button>
             )}
           </div>
