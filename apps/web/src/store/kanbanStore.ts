@@ -32,6 +32,7 @@ export interface KanbanCard {
     agentes: string[]
     extras: Record<string, string[]>
     notas: Record<string, string>
+    resumo?: string          // resumo executivo para auditoria
   }
 }
 
