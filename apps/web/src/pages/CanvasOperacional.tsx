@@ -78,6 +78,7 @@ type StepKey = typeof STEPS[number]['key']
 type CanvasState = {
   [K in StepKey]: string[]
 } & {
+  titulo: string
   extras: Record<string, string[]>
   custom: Record<StepKey, string[]>
   notas: Record<StepKey, string>
@@ -85,7 +86,7 @@ type CanvasState = {
 
 function initState(): CanvasState {
   const sel = Object.fromEntries(STEPS.map(s => [s.key, []])) as any
-  return { ...sel, extras: {}, custom: Object.fromEntries(STEPS.map(s => [s.key, []])) as any, notas: Object.fromEntries(STEPS.map(s => [s.key, ''])) as any }
+  return { ...sel, titulo: '', extras: {}, custom: Object.fromEntries(STEPS.map(s => [s.key, []])) as any, notas: Object.fromEntries(STEPS.map(s => [s.key, ''])) as any }
 }
 
 // ─── Progresso circular ───────────────────────────────────────────────────────
@@ -140,7 +141,7 @@ function WaveDecor() {
 
 // ─── Plano Final ──────────────────────────────────────────────────────────────
 
-function PlanoFinal({ state, onVoltar }: { state: CanvasState; onVoltar: () => void }) {
+function PlanoFinal({ state, onVoltar }: { state: CanvasState; titulo: string; onVoltar: () => void }) {
   const secoes = STEPS.map(s => ({
     ...s,
     itens: [...(state[s.key] as string[]), ...(state.custom[s.key] || [])],
@@ -162,7 +163,7 @@ function PlanoFinal({ state, onVoltar }: { state: CanvasState; onVoltar: () => v
             </div>
             <div>
               <p className="text-white/70 text-sm font-semibold uppercase tracking-widest">Canvas Completo</p>
-              <h2 className="text-white text-3xl font-black mt-0.5">Briefing Operacional</h2>
+              <h2 className="text-white text-3xl font-black mt-0.5">{state.titulo || 'Briefing Operacional'}</h2>
               <p className="text-white/80 text-sm mt-1">{secoes.length} seções preenchidas · pronto para execução</p>
             </div>
           </div>
@@ -279,7 +280,7 @@ export default function CanvasOperacional() {
 
   const selectedItems = [...(state[step.key] as string[]), ...(state.custom[step.key] || [])]
 
-  if (plano) return <PlanoFinal state={state} onVoltar={() => setPlano(false)} />
+  if (plano) return <PlanoFinal state={state} titulo={state.titulo} onVoltar={() => setPlano(false)} />
 
   return (
     <div className="flex gap-5 h-full min-h-0" style={{ minHeight: '600px' }}>
@@ -301,7 +302,12 @@ export default function CanvasOperacional() {
                 style={{ width: `${pct}%`, background: `linear-gradient(to right, ${step.from}, ${step.to})` }} />
             </div>
           </div>
-          <p className="text-[11px] text-slate-400 text-center mt-3 leading-tight">
+          {state.titulo && (
+            <p className="text-xs font-bold text-center mt-3 truncate px-1" style={{ color: step.from }}>
+              {state.titulo}
+            </p>
+          )}
+          <p className="text-[11px] text-slate-400 text-center mt-1 leading-tight">
             {concluidas === total
               ? 'Todas as etapas foram concluídas. Seu Canvas está pronto!'
               : 'Siga as etapas para montar seu Canvas Operacional'}
@@ -349,12 +355,19 @@ export default function CanvasOperacional() {
             <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
               <Icon size={26} className="text-white" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-white/70 text-xs font-bold uppercase tracking-widest">
                 ETAPA {stepIdx + 1} DE {total}
               </p>
               <h2 className="text-white text-2xl font-black mt-0.5">{step.label}</h2>
               <p className="text-white/80 text-sm mt-0.5">{step.descricao}</p>
+              {/* Título do canvas exibido em todas as etapas (exceto a primeira onde é digitado) */}
+              {stepIdx > 0 && state.titulo && (
+                <div className="mt-2 inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  <FileOutput size={11} />
+                  {state.titulo}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -362,6 +375,26 @@ export default function CanvasOperacional() {
         {/* Conteúdo da etapa */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+            {/* Campo de título — apenas na etapa Objetivos */}
+            {stepIdx === 0 && (
+              <div>
+                <p className="text-sm font-bold text-slate-700 mb-2">Título do Canvas</p>
+                <input
+                  value={state.titulo}
+                  onChange={e => setState(p => ({ ...p, titulo: e.target.value }))}
+                  placeholder="Ex: Canvas Financeiro Q3, Canvas Comercial 2026, Canvas de Operações..."
+                  className="w-full border-2 rounded-xl px-4 py-3 text-sm outline-none transition-all font-medium"
+                  style={{
+                    borderColor: state.titulo ? step.from : '#e2e8f0',
+                    boxShadow: state.titulo ? `0 0 0 3px ${step.from}18` : 'none',
+                  }}
+                />
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Este título será exibido em todas as etapas e no briefing final.
+                </p>
+              </div>
+            )}
 
             {/* Tags principais */}
             <div>
