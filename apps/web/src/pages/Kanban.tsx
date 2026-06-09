@@ -1018,6 +1018,94 @@ function FormRapido({ columns, onSave }: {
 
 // ─── Página principal ─────────────────────────────────────────────────────────
 
+// ─── Modal de Confirmação de Movimentação ─────────────────────────────────────
+
+const ETAPA_DATAS_MAP: Record<string, keyof KanbanCard> = {
+  entrada:         'dataEntrada',
+  analise:         'dataAnalise',
+  desenvolvimento: 'dataDesenvolvimento',
+  revisao:         'dataRevisao',
+  concluido:       'dataConcluido',
+}
+
+function ConfirmMoveModal({ card, fromCol, toCol, onConfirm, onCancel }: {
+  card: KanbanCard
+  fromCol: KanbanColumn
+  toCol: KanbanColumn
+  onConfirm: () => void
+  onCancel: () => void
+}) {
+  const hoje = new Date().toLocaleDateString('pt-BR')
+  const dateField = ETAPA_DATAS_MAP[toCol.id]
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(4px)' }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-fade-up">
+        {/* Header colorido da coluna destino */}
+        <div className={`px-5 py-4 bg-gradient-to-r ${toCol.gradient}`}>
+          <p className="text-white/80 text-xs font-semibold uppercase tracking-widest">Confirmar movimentação</p>
+          <h3 className="text-white font-bold text-base mt-0.5 truncate">{card.nome}</h3>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* De → Para */}
+          <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-3">
+            <div className="flex-1 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">De</p>
+              <span className="text-xs font-bold text-white px-2.5 py-1 rounded-full"
+                style={{ background: fromCol.accent }}>
+                {fromCol.label}
+              </span>
+            </div>
+            <div className="text-slate-300 font-bold text-lg">→</div>
+            <div className="flex-1 text-center">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Para</p>
+              <span className="text-xs font-bold text-white px-2.5 py-1 rounded-full"
+                style={{ background: toCol.accent }}>
+                {toCol.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Aviso de rastreabilidade */}
+          {dateField && (
+            <div className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
+              <p className="text-xs font-bold text-amber-700 mb-1">📋 Registro de rastreabilidade</p>
+              <p className="text-xs text-amber-600">
+                Será registrado em <strong>{toCol.label}</strong> a data de hoje:
+                <span className="font-bold ml-1">{hoje}</span>
+              </p>
+            </div>
+          )}
+
+          <p className="text-xs text-slate-500">
+            Deseja confirmar a movimentação deste card? Esta ação ficará registrada no histórico de etapas.
+          </p>
+        </div>
+
+        <div className="px-5 pb-5 flex gap-2">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-2.5 text-sm font-bold text-white rounded-xl transition-all hover:opacity-90"
+            style={{ background: `linear-gradient(135deg, ${toCol.accent}, ${toCol.accent}cc)` }}
+          >
+            Confirmar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Kanban() {
   const [columns, setColumns] = useState<KanbanColumn[]>(INIT_COLS)
   const [cards,   setCards]   = useState<KanbanCard[]>(loadCards)
@@ -1027,6 +1115,9 @@ export default function Kanban() {
   const [colModal,  setColModal]  = useState<ColDraft | null>(null)
   const [arquivados, setArquivados] = useState<CardArquivado[]>(() => getArquivados())
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false)
+
+  // Confirmação de movimentação
+  const [pendingMove, setPendingMove] = useState<{ cardId: string; toColId: string } | null>(null)
 
   // Filtros
   const [search,    setSearch]    = useState('')
@@ -1055,20 +1146,44 @@ export default function Kanban() {
   const total = cards.length
   const activeFilters = [search, filterPri, filterResp].filter(Boolean).length
 
-  // Drag
+  // Drag — intercepta e pede confirmação
   function handleDrop(colId: string) {
     if (dragId) {
-      setCards(p => {
-        const updated = p.map(c => {
-          if (c.id !== dragId) return c
-          const next = { ...c, coluna: colId }
-          storeSaveCard(next)
-          return next
-        })
-        return updated
-      })
+      const card = cards.find(c => c.id === dragId)
+      if (card && card.coluna !== colId) {
+        // Coluna diferente → pede confirmação
+        setPendingMove({ cardId: dragId, toColId: colId })
+        setDragId(null); setOverCol(null)
+        return
+      }
     }
     setDragId(null); setOverCol(null)
+  }
+
+  function confirmMove() {
+    if (!pendingMove) return
+    const { cardId, toColId } = pendingMove
+    const today = new Date().toISOString().slice(0, 10)
+    const dateField = ETAPA_DATAS_MAP[toColId] as keyof KanbanCard | undefined
+
+    setCards(p => {
+      const updated = p.map(c => {
+        if (c.id !== cardId) return c
+        const next: KanbanCard = {
+          ...c,
+          coluna: toColId,
+          ...(dateField && !c[dateField] ? { [dateField]: today } : {}),
+        }
+        storeSaveCard(next)
+        return next
+      })
+      return updated
+    })
+    setPendingMove(null)
+  }
+
+  function cancelMove() {
+    setPendingMove(null)
   }
 
   // Cards CRUD
@@ -1130,8 +1245,24 @@ export default function Kanban() {
     return group ? `${colId}:${group}` : colId
   }
 
+  // Dados para o modal de confirmação
+  const pendingCard = pendingMove ? cards.find(c => c.id === pendingMove.cardId) : null
+  const pendingFromCol = pendingMove && pendingCard ? columns.find(c => c.id === pendingCard.coluna) : null
+  const pendingToCol   = pendingMove ? columns.find(c => c.id === pendingMove.toColId) : null
+
   return (
     <div className="flex flex-col gap-3">
+
+      {/* ── Modal de confirmação de movimentação ── */}
+      {pendingMove && pendingCard && pendingFromCol && pendingToCol && (
+        <ConfirmMoveModal
+          card={pendingCard}
+          fromCol={pendingFromCol}
+          toCol={pendingToCol}
+          onConfirm={confirmMove}
+          onCancel={cancelMove}
+        />
+      )}
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-shrink-0 gap-3">
