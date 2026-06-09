@@ -5,27 +5,23 @@ import {
 import { useAuth } from '../contexts/AuthContext'
 
 function ChuaLogo() {
+  // Segmento base apontando para cima (12h), anel r1=21 r2=46, arco de ±12.5°
+  // Pré-calculado: cos(12.5°)=0.9763  sin(12.5°)=0.2164
+  // Outer: x=50±46*0.2164=50±9.95  y=50-46*0.9763=50-44.91=5.09
+  // Inner: x=50±21*0.2164=50±4.54  y=50-21*0.9763=50-20.50=29.50
+  const seg = "M40.05,5.09 A46,46 0 0,1 59.95,5.09 L54.54,29.50 A21,21 0 0,0 45.46,29.50 Z"
+  // 11 posições de 12 (30° cada), gap na posição 4 (4h = 120°)
+  const positions = [0,1,2,3,5,6,7,8,9,10,11]
   return (
-    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-      {/* Roda CHUA — 11 segmentos laranja em círculo */}
-      {[0,1,2,3,4,5,6,7,8,9,10].map((i) => {
-        const angle = (i * 360) / 12 - 90
-        const rad = (angle * Math.PI) / 180
-        const cx = 50 + 32 * Math.cos(rad)
-        const cy = 50 + 32 * Math.sin(rad)
-        return (
-          <rect
-            key={i}
-            x={cx - 7}
-            y={cy - 5}
-            width={14}
-            height={10}
-            rx={3}
-            fill="#E84E1B"
-            transform={`rotate(${angle + 90}, ${cx}, ${cy})`}
-          />
-        )
-      })}
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+      {positions.map(i => (
+        <path
+          key={i}
+          d={seg}
+          fill="#E5501E"
+          transform={`rotate(${i * 30}, 50, 50)`}
+        />
+      ))}
     </svg>
   )
 }
