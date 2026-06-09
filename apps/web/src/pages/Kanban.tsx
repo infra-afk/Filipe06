@@ -580,6 +580,236 @@ function KColumn({ col, cards, dragId, overCol, swimRow,
   )
 }
 
+// ─── Formulário Rápido ────────────────────────────────────────────────────────
+
+function FormRapido({ columns, onSave }: {
+  columns: KanbanColumn[]
+  onSave: (d: CardDraft) => void
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const [enviado, setEnviado] = useState(false)
+  const [form, setForm] = useState<CardDraft>(blankCard(columns[0]?.id || ''))
+
+  const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
+
+  function addTag() {
+    const t = tagInput.trim()
+    if (!t || form.tags.includes(t)) return
+    setForm(p => ({ ...p, tags: [...p.tags, t] }))
+    setTagInput('')
+  }
+
+  function removeTag(t: string) {
+    setForm(p => ({ ...p, tags: p.tags.filter(x => x !== t) }))
+  }
+
+  function handleSave() {
+    if (!form.nome.trim()) return
+    onSave(form)
+    setForm(blankCard(columns[0]?.id || ''))
+    setTagInput('')
+    setEnviado(true)
+    setTimeout(() => setEnviado(false), 2500)
+  }
+
+  return (
+    <div className="flex-shrink-0 border-t border-slate-100 pt-4 mt-2">
+      {/* Toggle */}
+      <button
+        onClick={() => setAberto(p => !p)}
+        className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-3"
+      >
+        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-white transition-all ${aberto ? 'bg-slate-400 rotate-45' : 'bg-blue-600'}`}>
+          <Plus size={12} />
+        </div>
+        {aberto ? 'Fechar formulário' : 'Adicionar novo card rapidamente'}
+      </button>
+
+      {aberto && (
+        <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden animate-fade-up">
+          {/* Cabeçalho */}
+          <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+                <Plus size={14} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Novo Card</h3>
+                <p className="text-[11px] text-slate-400">Preencha os campos e clique em Adicionar</p>
+              </div>
+            </div>
+            {enviado && (
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+                <CheckCircle2 size={12} /> Card adicionado!
+              </span>
+            )}
+          </div>
+
+          <div className="p-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+              {/* Nome */}
+              <div className="lg:col-span-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Nome do Dashboard *
+                </label>
+                <input
+                  value={form.nome}
+                  onChange={e => set('nome', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && handleSave()}
+                  placeholder="Ex: Dashboard Financeiro, Dashboard de Vendas..."
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+              </div>
+
+              {/* Coluna */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Coluna
+                </label>
+                <select
+                  value={form.coluna}
+                  onChange={e => set('coluna', e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 bg-white transition-all"
+                >
+                  {columns.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </div>
+
+              {/* Responsável */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Responsável
+                </label>
+                <input
+                  value={form.responsavel}
+                  onChange={e => set('responsavel', e.target.value)}
+                  placeholder="Nome do responsável"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+              </div>
+
+              {/* Prioridade */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Prioridade
+                </label>
+                <div className="flex gap-2">
+                  {(['Alta', 'Média', 'Baixa'] as Priority[]).map(p => {
+                    const cfg = PRIORITY_CFG[p]
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setForm(f => ({ ...f, prioridade: p }))}
+                        className={`flex-1 py-2 rounded-xl text-xs font-bold border-2 transition-all ${
+                          form.prioridade === p
+                            ? `${cfg.bg} ${cfg.text} border-current`
+                            : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Prazo */}
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Prazo
+                </label>
+                <input
+                  type="date"
+                  value={form.prazo}
+                  onChange={e => set('prazo', e.target.value)}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                />
+              </div>
+
+              {/* Tags */}
+              <div className="lg:col-span-2">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Tags
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex-1 flex flex-wrap items-center gap-1.5 border border-slate-200 rounded-xl px-3 py-2 min-h-[42px]">
+                    {form.tags.map(t => (
+                      <span key={t} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${tagColor(t)}`}>
+                        {t}
+                        <button onClick={() => removeTag(t)} className="hover:opacity-70"><X size={9} /></button>
+                      </span>
+                    ))}
+                    <input
+                      value={tagInput}
+                      onChange={e => setTagInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addTag()}
+                      placeholder={form.tags.length === 0 ? 'Digite uma tag e pressione Enter...' : 'Mais tags...'}
+                      className="flex-1 min-w-[120px] text-sm outline-none text-slate-700 placeholder-slate-400 bg-transparent"
+                    />
+                  </div>
+                  {tagInput.trim() && (
+                    <button
+                      onClick={addTag}
+                      className="px-3 py-2 text-xs font-bold text-white rounded-xl bg-blue-600 hover:bg-blue-700 transition-all flex-shrink-0"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Observações */}
+              <div className="lg:col-span-3">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
+                  Observações
+                </label>
+                <textarea
+                  value={form.observacoes}
+                  onChange={e => set('observacoes', e.target.value)}
+                  placeholder="Detalhes, contexto ou requisitos do dashboard..."
+                  rows={2}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all"
+                />
+              </div>
+            </div>
+
+            {/* Rodapé */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+              <p className="text-xs text-slate-400">
+                {form.nome.trim() ? (
+                  <span className="text-green-600 font-medium flex items-center gap-1">
+                    <CheckCircle2 size={11} /> Pronto para adicionar
+                  </span>
+                ) : (
+                  '* Nome obrigatório'
+                )}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { setForm(blankCard(columns[0]?.id || '')); setTagInput('') }}
+                  className="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
+                >
+                  Limpar
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={!form.nome.trim()}
+                  className="flex items-center gap-2 px-5 py-2 text-sm font-bold text-white rounded-xl disabled:opacity-40 transition-all shadow-md hover:opacity-90"
+                  style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}
+                >
+                  <Plus size={14} /> Adicionar Card
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Página principal ─────────────────────────────────────────────────────────
 
 export default function Kanban() {
@@ -665,7 +895,7 @@ export default function Kanban() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-3 min-h-0">
+    <div className="flex flex-col gap-3">
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-shrink-0 gap-3">
@@ -772,7 +1002,7 @@ export default function Kanban() {
       {/* ── Board ── */}
       {swimlane === 'none' ? (
         /* Modo normal */
-        <div className="flex gap-3 flex-1 overflow-x-auto pb-2 min-h-0">
+        <div className="flex gap-3 overflow-x-auto pb-2" style={{ minHeight: '480px' }}>
           {columns.map(col => (
             <KColumn key={col.id} col={col}
               cards={colCards(col.id)}
@@ -798,7 +1028,7 @@ export default function Kanban() {
         </div>
       ) : (
         /* Modo swimlane */
-        <div className="flex-1 overflow-auto pb-2 min-h-0">
+        <div className="overflow-auto pb-2" style={{ minHeight: '480px' }}>
           {/* Column headers */}
           <div className="flex gap-3 mb-2 pl-32 sticky top-0 z-10 pb-1 bg-inherit">
             {columns.filter(c => !c.collapsed).map(col => {
@@ -889,6 +1119,9 @@ export default function Kanban() {
           onSave={saveColumn} onClose={() => setColModal(null)}
           onDelete={colModal.id ? () => deleteColumn(colModal.id!) : undefined} />
       )}
+
+      {/* ── Formulário rápido ── */}
+      <FormRapido columns={columns} onSave={saveCard} />
     </div>
   )
 }

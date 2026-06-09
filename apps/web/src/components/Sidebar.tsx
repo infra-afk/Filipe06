@@ -1,13 +1,14 @@
 import { NavLink } from 'react-router-dom'
 import {
-  Settings, TrendingUp, LogOut, X, LayoutGrid, Kanban,
+  Settings, TrendingUp, LogOut, X, LayoutGrid, Kanban, ClipboardList,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
-  { path: '/canvases',      label: 'Canvas',        icon: LayoutGrid, highlight: true },
-  { path: '/kanban',        label: 'Kanban',         icon: Kanban,     highlight: false },
-  { path: '/configuracoes', label: 'Configurações',  icon: Settings,   highlight: false },
+  { path: '/canvases',      label: 'Canvas',        icon: LayoutGrid,    highlight: true  },
+  { path: '/kanban',        label: 'Kanban',         icon: Kanban,        highlight: false },
+  { path: '/formulario',    label: 'Formulário',     icon: ClipboardList, highlight: false },
+  { path: '/configuracoes', label: 'Configurações',  icon: Settings,      highlight: false },
 ]
 
 interface SidebarProps {

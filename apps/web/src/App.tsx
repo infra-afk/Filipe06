@@ -18,6 +18,7 @@ import CanvasListPage from './features/canvas/pages/CanvasListPage'
 import CanvasPage from './features/canvas/pages/CanvasPage'
 import CanvasOperacional from './pages/CanvasOperacional'
 import KanbanPage from './pages/Kanban'
+import Formulario from './pages/Formulario'
 import { Loader2 } from 'lucide-react'
 
 function AppRoutes() {
@@ -60,7 +61,8 @@ function AppRoutes() {
           <Route path="/automacoes" element={<Automacoes />} />
           <Route path="/configuracoes" element={<Configuracoes />} />
           <Route path="/canvases" element={<CanvasOperacional />} />
-          <Route path="/kanban"   element={<KanbanPage />} />
+          <Route path="/kanban"      element={<KanbanPage />} />
+          <Route path="/formulario"  element={<Formulario />} />
           <Route path="/canvas/:canvasId" element={<CanvasPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
