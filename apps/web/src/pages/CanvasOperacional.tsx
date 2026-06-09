@@ -1,233 +1,228 @@
 import { useState } from 'react'
 import {
-  Target, BarChart2, ShoppingCart, Receipt, RefreshCcw, FileText,
-  Bell, Lightbulb, Bot, ChevronRight, ChevronLeft,
-  CheckCircle2, Plus, X, FileOutput, Sparkles,
+  Target, BarChart2, ShoppingCart, Receipt, RefreshCcw,
+  FileText, Bell, Lightbulb, Bot, ChevronRight, ChevronLeft,
+  CheckCircle2, Plus, X, FileOutput, Sparkles, Check,
 } from 'lucide-react'
 
-// ─── Etapas ────────────────────────────────────────────────────────────────────
+// ─── Configuração das etapas ──────────────────────────────────────────────────
 
 const STEPS = [
   {
     key: 'objetivos', label: 'Objetivos', icon: Target,
-    gradient: 'from-blue-600 to-blue-500',
-    accent: '#2563eb',
+    from: '#2563eb', to: '#1d4ed8',
     descricao: 'Qual é o objetivo principal? Para quem é este dashboard?',
     sugestoes: ['Aumentar Receita','Reduzir Custos','Melhorar Margem','Reduzir Churn','Aumentar Vendas','Controle Financeiro','Eficiência Operacional','Expansão de Mercado'],
-    extras: [{ campo: 'audiencia', label: 'Audiência', opcoes: ['Diretoria','Gerentes','Equipe Comercial','Equipe Financeira','Todos'], multiSelect: true }],
+    extras: [{ campo: 'audiencia', label: 'Audiência', opcoes: ['Diretoria','Gerentes','Equipe Comercial','Equipe Financeira','Todos'], multi: true, input: false }],
   },
   {
     key: 'indicadores', label: 'Indicadores', icon: BarChart2,
-    gradient: 'from-blue-700 to-blue-600',
-    accent: '#1d4ed8',
+    from: '#1d4ed8', to: '#1e40af',
     descricao: 'Quais KPIs e métricas devem aparecer no dashboard?',
     sugestoes: ['Receita Total','Ticket Médio','Crescimento %','EBITDA','Margem Líquida','CAC','Clientes Novos','Clientes Recorrentes','Conversão','Despesas Totais'],
-    extras: [{ campo: 'freq', label: 'Freq. de atualização', opcoes: ['Tempo real','Diário','Semanal','Mensal'] }],
+    extras: [{ campo: 'freq', label: 'Freq. de atualização', opcoes: ['Tempo real','Diário','Semanal','Mensal'], multi: false, input: false }],
   },
   {
     key: 'vendas', label: 'Vendas', icon: ShoppingCart,
-    gradient: 'from-emerald-600 to-teal-500',
-    accent: '#059669',
+    from: '#059669', to: '#0f766e',
     descricao: 'Como as vendas devem ser analisadas e apresentadas?',
     sugestoes: ['Vendas por Período','Por Produto','Por Canal','Por Vendedor','Por Região','Por Cliente','Meta vs Realizado','Comparação Mensal','Funil de Vendas','Devoluções'],
-    extras: [{ campo: 'grafico', label: 'Visualização preferida', opcoes: ['Linha','Barra','Pizza','Tabela','Cards'] }],
+    extras: [{ campo: 'grafico', label: 'Visualização preferida', opcoes: ['Linha','Barra','Pizza','Tabela','Cards'], multi: false, input: false }],
   },
   {
     key: 'despesas', label: 'Despesas', icon: Receipt,
-    gradient: 'from-red-600 to-rose-500',
-    accent: '#dc2626',
+    from: '#dc2626', to: '#b91c1c',
     descricao: 'Quais despesas devem ser monitoradas e como?',
     sugestoes: ['Despesas Totais','Fixas vs Variáveis','Por Departamento','Por Fornecedor','Orçamento vs Realizado','Top 10 Gastos','Tendência Mensal','Custo com Pessoal'],
-    extras: [{ campo: 'limite', label: 'Limite para alerta (R$)', opcoes: [], input: true }],
+    extras: [{ campo: 'limite', label: 'Limite para alerta (R$)', opcoes: [], multi: false, input: true }],
   },
   {
     key: 'devolucoes', label: 'Devoluções', icon: RefreshCcw,
-    gradient: 'from-orange-500 to-amber-500',
-    accent: '#f97316',
+    from: '#f97316', to: '#ea580c',
     descricao: 'Como as devoluções devem ser analisadas?',
     sugestoes: ['Taxa de Devolução','Por Produto','Por Motivo','Por Período','Custo das Devoluções','Comparação com Meta','Por Canal','Impacto na Margem'],
-    extras: [{ campo: 'limite', label: 'Taxa limite (%)', opcoes: [], input: true }],
+    extras: [{ campo: 'limite', label: 'Taxa limite (%)', opcoes: [], multi: false, input: true }],
   },
   {
     key: 'dre', label: 'DRE', icon: FileText,
-    gradient: 'from-teal-600 to-cyan-500',
-    accent: '#0d9488',
+    from: '#0d9488', to: '#0f766e',
     descricao: 'Quais linhas do DRE devem aparecer e como comparar?',
     sugestoes: ['Receita Bruta','Deduções','Receita Líquida','Custo das Vendas','Lucro Bruto','Despesas Operacionais','EBITDA','EBIT','Resultado Financeiro','Lucro Líquido'],
-    extras: [{ campo: 'comparacao', label: 'Comparativo', opcoes: ['Mês atual vs anterior','Mesmo mês do ano passado','YTD acumulado','Budget vs Realizado'] }],
+    extras: [{ campo: 'comparacao', label: 'Comparativo', opcoes: ['Mês atual vs anterior','Mesmo mês do ano passado','YTD acumulado','Budget vs Realizado'], multi: false, input: false }],
   },
   {
     key: 'alertas', label: 'Alertas', icon: Bell,
-    gradient: 'from-rose-600 to-pink-500',
-    accent: '#e11d48',
+    from: '#e11d48', to: '#be123c',
     descricao: 'Quando e como o time deve ser notificado?',
     sugestoes: ['Margem abaixo da meta','Despesas acima do orçamento','Meta de vendas não atingida','Devolução acima do limite','EBITDA negativo','Queda de receita no mês'],
-    extras: [{ campo: 'canal', label: 'Canal de notificação', opcoes: ['E-mail','WhatsApp','Dashboard','Todos'] }],
+    extras: [{ campo: 'canal', label: 'Canal de notificação', opcoes: ['E-mail','WhatsApp','Dashboard','Todos'], multi: false, input: false }],
   },
   {
     key: 'decisoes', label: 'Decisões', icon: Lightbulb,
-    gradient: 'from-yellow-500 to-orange-400',
-    accent: '#d97706',
+    from: '#d97706', to: '#b45309',
     descricao: 'Quais decisões serão tomadas com base neste dashboard?',
     sugestoes: ['Revisar precificação se margem cair','Acionar comercial se vendas caírem','Cortar custos se despesas subirem','Revisar fornecedores se custo subir','Criar plano de ação se meta não for atingida','Abrir novo canal se crescimento estiver baixo'],
-    extras: [{ campo: 'responsavel', label: 'Responsável', opcoes: ['Diretor','Gerente Financeiro','Gerente Comercial','Equipe','Todos'] }],
+    extras: [{ campo: 'responsavel', label: 'Responsável', opcoes: ['Diretor','Gerente Financeiro','Gerente Comercial','Equipe','Todos'], multi: true, input: false }],
   },
   {
     key: 'agentes', label: 'Agentes IA', icon: Bot,
-    gradient: 'from-teal-700 to-teal-600',
-    accent: '#0f766e',
+    from: '#0f766e', to: '#134e4a',
     descricao: 'Quais análises e automações de IA o dashboard deve gerar?',
     sugestoes: ['Análise automática de tendências','Previsão de vendas','Identificar anomalias em despesas','Resumo executivo semanal','Diagnóstico de margem','Alerta inteligente de desvios','Sugestão de ações corretivas'],
-    extras: [{ campo: 'automacoes', label: 'Automação', opcoes: ['Relatório semanal','Alerta por desvio','Atualização automática','Resumo mensal por e-mail'] }],
+    extras: [{ campo: 'automacoes', label: 'Automação', opcoes: ['Relatório semanal','Alerta por desvio','Atualização automática','Resumo mensal por e-mail'], multi: true, input: false }],
   },
 ] as const
 
 type StepKey = typeof STEPS[number]['key']
-type CanvasState = {
-  notas: Record<StepKey, string>
-  extras: Record<string, string>
-  custom: Record<StepKey, string[]>
-} & Record<string, any>
 
-function initState(): CanvasState {
-  return { notas: {} as any, extras: {} as any, custom: {} as any }
+type CanvasState = {
+  [K in StepKey]: string[]
+} & {
+  extras: Record<string, string[]>
+  custom: Record<StepKey, string[]>
+  notas: Record<StepKey, string>
 }
 
-// ─── Tag ───────────────────────────────────────────────────────────────────────
+function initState(): CanvasState {
+  const sel = Object.fromEntries(STEPS.map(s => [s.key, []])) as any
+  return { ...sel, extras: {}, custom: Object.fromEntries(STEPS.map(s => [s.key, []])) as any, notas: Object.fromEntries(STEPS.map(s => [s.key, ''])) as any }
+}
 
-function Tag({ label, active, onClick, accent }: { label: string; active: boolean; onClick: () => void; accent: string }) {
-  const [pop, setPop] = useState(false)
-  function handle() { setPop(true); onClick(); setTimeout(() => setPop(false), 150) }
+// ─── Progresso circular ───────────────────────────────────────────────────────
+
+function CircularProgress({ pct, accent }: { pct: number; accent: string }) {
+  const r = 44
+  const circ = 2 * Math.PI * r
+  const dash = circ * pct / 100
+  return (
+    <div className="relative w-24 h-24 flex-shrink-0">
+      <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#e2e8f0" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={accent} strokeWidth="8"
+          strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
+          style={{ transition: 'stroke-dasharray 0.5s ease' }} />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-xl font-black text-slate-800">{pct}%</span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Tag ─────────────────────────────────────────────────────────────────────
+
+function Tag({ label, active, accent, onClick }: { label: string; active: boolean; accent: string; onClick: () => void }) {
   return (
     <button
-      onClick={handle}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border-2 transition-all duration-150 select-none ${
-        pop ? 'scale-95' : 'hover:scale-105'
-      } ${
-        active
-          ? 'text-white border-transparent shadow-md'
-          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:shadow-sm'
-      }`}
-      style={active ? { background: accent, borderColor: accent } : {}}
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium border-2 transition-all duration-150 select-none"
+      style={active
+        ? { background: accent, borderColor: accent, color: '#fff' }
+        : { background: '#fff', borderColor: '#e2e8f0', color: '#475569' }
+      }
     >
-      {active && <CheckCircle2 size={12} className="flex-shrink-0" />}
+      {active && <Check size={13} className="flex-shrink-0" />}
       {label}
     </button>
+  )
+}
+
+// ─── Ondas decorativas do banner ──────────────────────────────────────────────
+
+function WaveDecor() {
+  return (
+    <svg className="absolute right-0 bottom-0 opacity-20" width="320" height="160" viewBox="0 0 320 160" fill="none">
+      <path d="M320 0 Q240 80 160 60 Q80 40 0 120 L0 160 L320 160 Z" fill="white" />
+      <path d="M320 40 Q260 100 180 80 Q100 60 20 140 L0 160 L320 160 Z" fill="white" opacity="0.5" />
+    </svg>
   )
 }
 
 // ─── Plano Final ──────────────────────────────────────────────────────────────
 
 function PlanoFinal({ state, onVoltar }: { state: CanvasState; onVoltar: () => void }) {
-  const [enviado, setEnviado] = useState(false)
-
   const secoes = STEPS.map(s => ({
     ...s,
-    itens: [...((state[s.key] as string[]) || []), ...((state.custom[s.key]) || [])],
+    itens: [...(state[s.key] as string[]), ...(state.custom[s.key] || [])],
     extras: Object.entries(state.extras)
       .filter(([k]) => k.startsWith(s.key + '_'))
-      .map(([, v]) => v.split('|').filter(Boolean).join(', '))
-      .filter(Boolean),
+      .flatMap(([, v]) => v),
+    nota: state.notas[s.key],
   })).filter(s => s.itens.length > 0 || s.extras.length > 0)
 
-  function enviarParaKanban() {
-    const objetivo = ((state['objetivos'] as string[]) || [])[0] || 'Dashboard do Canvas'
-    const audiencia = (state.extras['objetivos_audiencia'] || '').split('|').filter(Boolean).join(', ')
-    const card = {
-      id: `canvas_${Date.now()}`,
-      nome: `Dashboard: ${objetivo}`,
-      responsavel: '',
-      dataEntrada: new Date().toISOString().split('T')[0],
-      prazo: '',
-      prioridade: 'Média',
-      coluna: 'entrada',
-      observacoes: `Briefing gerado via Canvas.${audiencia ? ` Audiência: ${audiencia}.` : ''}`,
-      tags: ['Canvas'],
-    }
-    const existing = JSON.parse(localStorage.getItem('kanban_from_canvas') || '[]')
-    localStorage.setItem('kanban_from_canvas', JSON.stringify([...existing, card]))
-    setEnviado(true)
-  }
-
   return (
-    <div className="space-y-6 animate-fade-up">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Briefing do Dashboard</h1>
-          <p className="text-sm text-slate-400 mt-0.5">Pronto para o profissional montar o dashboard</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {enviado ? (
-            <span className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-200 rounded-xl">
-              <CheckCircle2 size={14} /> Card criado no Kanban
-            </span>
-          ) : (
-            <button
-              onClick={enviarParaKanban}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-white rounded-xl shadow-md transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #1d4ed8, #0f766e)' }}
-            >
-              <FileOutput size={14} /> Enviar para Kanban
-            </button>
-          )}
-          <button
-            onClick={onVoltar}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
-          >
-            <ChevronLeft size={14} /> Editar
-          </button>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="rounded-2xl overflow-hidden mb-6" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
+        <div className="relative px-8 py-8">
+          <WaveDecor />
+          <div className="relative z-10 flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
+              <FileOutput size={26} className="text-white" />
+            </div>
+            <div>
+              <p className="text-white/70 text-sm font-semibold uppercase tracking-widest">Canvas Completo</p>
+              <h2 className="text-white text-3xl font-black mt-0.5">Briefing Operacional</h2>
+              <p className="text-white/80 text-sm mt-1">{secoes.length} seções preenchidas · pronto para execução</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {secoes.map(({ key, label, icon: Icon, gradient, itens, extras: extrasVal }, i) => {
-          const nota = state.notas[key as StepKey]
+      {/* Conteúdo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+        {secoes.map(s => {
+          const Icon = s.icon
           return (
-            <div
-              key={key}
-              className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-fade-up"
-              style={{ animationDelay: `${i * 40}ms` }}
-            >
-              <div className={`bg-gradient-to-r ${gradient} px-4 py-3 flex items-center gap-2`}>
-                <Icon size={13} color="white" />
-                <span className="text-sm font-bold text-white">{label}</span>
-                <span className="ml-auto text-xs text-white/70">{itens.length + extrasVal.length}</span>
+            <div key={s.key} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100"
+                style={{ background: s.from + '12' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: s.from }}>
+                  <Icon size={14} className="text-white" />
+                </div>
+                <span className="text-sm font-bold text-slate-700">{s.label}</span>
               </div>
-              <div className="p-4 space-y-1.5">
-                {[...itens, ...extrasVal].map(item => (
-                  <div key={item} className="flex items-center gap-2 text-xs text-slate-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" />
-                    {item}
-                  </div>
-                ))}
-                {nota && (
-                  <p className="text-xs italic text-slate-400 mt-2 pt-2 border-t border-slate-100">{nota}</p>
-                )}
+              <div className="p-4">
+                <div className="flex flex-wrap gap-1.5">
+                  {s.itens.map(item => (
+                    <span key={item} className="text-xs px-2.5 py-1 rounded-full font-medium text-white"
+                      style={{ background: s.from }}>
+                      {item}
+                    </span>
+                  ))}
+                  {s.extras.map((e, i) => (
+                    <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium border border-slate-200 text-slate-600 bg-slate-50">
+                      {e}
+                    </span>
+                  ))}
+                </div>
+                {s.nota && <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-50 pt-2">{s.nota}</p>}
               </div>
             </div>
           )
         })}
       </div>
 
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-2xl p-6 text-white">
-        <div className="flex items-center gap-2 mb-4">
-          <Sparkles size={15} className="text-yellow-400" />
-          <h3 className="font-bold text-sm">Checklist para o Profissional</h3>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-          {secoes.map(({ label, gradient }, i) => (
-            <div
-              key={label}
-              className="flex items-center gap-2 text-sm text-slate-300 animate-fade-up"
-              style={{ animationDelay: `${i * 30}ms` }}
-            >
-              <div className={`w-4 h-4 rounded-full bg-gradient-to-r ${gradient} flex items-center justify-center flex-shrink-0`}>
-                <CheckCircle2 size={10} color="white" />
-              </div>
-              Montar seção de {label.toLowerCase()}
+      {/* Próximos passos */}
+      <div className="mt-6 rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
+        <h3 className="font-bold text-base mb-3 flex items-center gap-2">
+          <ChevronRight size={16} /> Próximos Passos
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          {['Conectar as fontes de dados selecionadas','Configurar indicadores no banco de dados','Definir metas para cada indicador','Ativar os alertas automáticos','Configurar os agentes de IA','Programar as automações','Acessar o Dashboard com dados reais'].map((p, i) => (
+            <div key={p} className="flex items-center gap-2 text-sm text-blue-100">
+              <span className="bg-white/20 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+              {p}
             </div>
           ))}
         </div>
+      </div>
+
+      <div className="flex justify-center mt-6">
+        <button onClick={onVoltar}
+          className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm">
+          <X size={14} /> Editar Canvas
+        </button>
       </div>
     </div>
   )
@@ -238,226 +233,192 @@ function PlanoFinal({ state, onVoltar }: { state: CanvasState; onVoltar: () => v
 export default function CanvasOperacional() {
   const [stepIdx, setStepIdx] = useState(0)
   const [state, setState] = useState<CanvasState>(initState)
-  const [plano, setPlano] = useState(false)
   const [customInput, setCustomInput] = useState('')
-  const [stepKey, setStepKey] = useState(0)
+  const [plano, setPlano] = useState(false)
 
   const step = STEPS[stepIdx]
-  const isLast = stepIdx === STEPS.length - 1
-  const selected: string[] = (state[step.key] as string[]) || []
-  const customItens: string[] = state.custom[step.key] || []
-  const filled = STEPS.filter(s => ((state[s.key] as string[]) || []).length > 0).length
-  const pct = Math.round((filled / STEPS.length) * 100)
+  const Icon = step.icon
+  const total = STEPS.length
 
-  function goTo(idx: number) {
-    setStepIdx(idx)
-    setStepKey(k => k + 1)
-    setCustomInput('')
-  }
+  // quantas etapas têm pelo menos 1 item
+  const concluidas = STEPS.filter(s => (state[s.key] as string[]).length > 0).length
+  const pct = Math.round((concluidas / total) * 100)
 
-  function toggle(val: string) {
-    setState(prev => {
-      const arr: string[] = (prev[step.key] as string[]) || []
-      return { ...prev, [step.key]: arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val] }
+  function toggleItem(key: StepKey, val: string) {
+    setState(p => {
+      const arr = p[key] as string[]
+      return { ...p, [key]: arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val] }
     })
   }
 
-  function toggleExtra(campo: string, val: string, multiSelect?: boolean) {
-    const k = `${step.key}_${campo}`
-    setState(prev => {
-      if (multiSelect) {
-        const current = prev.extras[k] ? prev.extras[k].split('|') : []
-        const next = current.includes(val) ? current.filter(v => v !== val) : [...current, val]
-        return { ...prev, extras: { ...prev.extras, [k]: next.join('|') } }
-      }
-      return { ...prev, extras: { ...prev.extras, [k]: prev.extras[k] === val ? '' : val } }
+  function toggleExtra(stepKey: string, campo: string, val: string, multi: boolean) {
+    const k = `${stepKey}_${campo}`
+    setState(p => {
+      const arr = p.extras[k] || []
+      const next = multi
+        ? (arr.includes(val) ? arr.filter(v => v !== val) : [...arr, val])
+        : (arr.includes(val) ? [] : [val])
+      return { ...p, extras: { ...p.extras, [k]: next } }
     })
   }
 
   function addCustom() {
-    const t = customInput.trim()
-    if (!t) return
-    setState(prev => ({
-      ...prev,
-      custom: { ...prev.custom, [step.key]: [...(prev.custom[step.key] || []), t] },
-    }))
+    const v = customInput.trim()
+    if (!v) return
+    setState(p => {
+      const arr = p.custom[step.key] || []
+      if (arr.includes(v)) return p
+      return { ...p, custom: { ...p.custom, [step.key]: [...arr, v] } }
+    })
     setCustomInput('')
   }
 
-  function removeCustom(i: number) {
-    setState(prev => ({
-      ...prev,
-      custom: { ...prev.custom, [step.key]: (prev.custom[step.key] || []).filter((_, j) => j !== i) },
-    }))
+  function removeCustom(val: string) {
+    setState(p => ({ ...p, custom: { ...p.custom, [step.key]: (p.custom[step.key] || []).filter(v => v !== val) } }))
   }
+
+  const selectedItems = [...(state[step.key] as string[]), ...(state.custom[step.key] || [])]
 
   if (plano) return <PlanoFinal state={state} onVoltar={() => setPlano(false)} />
 
   return (
-    <div className="flex gap-4 lg:gap-6 min-h-0">
+    <div className="flex gap-5 h-full min-h-0" style={{ minHeight: '600px' }}>
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside className="hidden sm:flex w-44 lg:w-52 flex-shrink-0 flex-col gap-3">
-
-        <div>
-          <h1 className="text-sm font-bold text-slate-900 leading-tight">Canvas do Dashboard</h1>
-          <p className="text-xs text-slate-400 mt-0.5">Briefing para montar o painel</p>
-        </div>
-
-        {/* Progress */}
-        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-xs text-slate-500">{filled} de {STEPS.length}</span>
-            <span className="text-xs font-bold" style={{ color: step.accent }}>{pct}%</span>
-          </div>
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${pct}%`, background: `linear-gradient(to right, ${step.accent}, ${step.accent}99)` }}
-            />
-          </div>
-        </div>
-
-        {/* Step nav */}
-        <nav className="flex-1 space-y-0.5">
-          {STEPS.map((s, i) => {
-            const done = ((state[s.key] as string[]) || []).length > 0
-            const active = i === stepIdx
-            const count = ((state[s.key] as string[]) || []).length + (state.custom[s.key] || []).length
-            return (
-              <button
-                key={s.key}
-                onClick={() => goTo(i)}
-                className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-xs font-medium transition-all text-left group ${
-                  active
-                    ? 'text-white shadow-sm'
-                    : done
-                      ? 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'
-                }`}
-                style={active ? { background: `linear-gradient(135deg, ${s.accent}ee, ${s.accent}bb)` } : {}}
-              >
-                <s.icon size={12} className="flex-shrink-0" />
-                <span className="flex-1 truncate">{s.label}</span>
-                {done && !active && (
-                  <span
-                    className="text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center text-white flex-shrink-0"
-                    style={{ background: s.accent }}
-                  >
-                    {count > 9 ? '9+' : count}
-                  </span>
-                )}
-                {active && <ChevronRight size={10} className="opacity-60 flex-shrink-0" />}
-              </button>
-            )
-          })}
-        </nav>
-
-        {filled >= 3 && (
-          <button
-            onClick={() => setPlano(true)}
-            className="flex items-center justify-center gap-1.5 px-3 py-2.5 text-xs font-bold text-white rounded-xl shadow-md transition-all hover:opacity-90 animate-fade-up"
-            style={{ background: 'linear-gradient(135deg, #1e40af, #0f766e)' }}
-          >
-            <FileOutput size={12} /> Ver Briefing
-          </button>
-        )}
-      </aside>
-
-      {/* ── Main content ────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0" key={stepKey}>
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden animate-step-in">
-
-          {/* Header com gradiente */}
-          <div className={`bg-gradient-to-r ${step.gradient} px-5 py-4`}>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center flex-shrink-0">
-                <step.icon size={18} color="white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-[10px] font-bold text-white/60 uppercase tracking-widest">
-                  Etapa {stepIdx + 1} / {STEPS.length}
-                </div>
-                <h2 className="text-base font-bold text-white leading-tight">{step.label}</h2>
-                <p className="text-xs text-white/70 mt-0.5 leading-relaxed line-clamp-1 lg:line-clamp-none">
-                  {step.descricao}
-                </p>
-              </div>
-              {(selected.length + customItens.length) > 0 && (
-                <div className="flex-shrink-0 bg-white/20 backdrop-blur rounded-full px-2.5 py-1 flex items-center gap-1.5">
-                  <CheckCircle2 size={11} color="white" />
-                  <span className="text-xs font-bold text-white">{selected.length + customItens.length}</span>
-                </div>
-              )}
+      {/* ── Painel esquerdo ── */}
+      <div className="w-60 flex-shrink-0 flex flex-col gap-4">
+        {/* Progresso */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Progresso do briefing</p>
+          <div className="flex flex-col items-center gap-2">
+            <CircularProgress pct={pct} accent={step.from} />
+            <div className="text-center">
+              <p className="text-sm font-bold text-slate-700">{concluidas} de {total}</p>
+              <p className="text-xs text-slate-400">etapas concluídas</p>
+            </div>
+            {/* Barra linear */}
+            <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mt-1">
+              <div className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${pct}%`, background: `linear-gradient(to right, ${step.from}, ${step.to})` }} />
             </div>
           </div>
+          <p className="text-[11px] text-slate-400 text-center mt-3 leading-tight">
+            {concluidas === total
+              ? 'Todas as etapas foram concluídas. Seu Canvas está pronto!'
+              : 'Siga as etapas para montar seu Canvas Operacional'}
+          </p>
+        </div>
 
-          {/* Conteúdo */}
-          <div className="p-5 space-y-5">
+        {/* Lista de etapas */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex-1">
+          <div className="divide-y divide-slate-50">
+            {STEPS.map((s, i) => {
+              const SIcon = s.icon
+              const done = (state[s.key] as string[]).length > 0
+              const active = i === stepIdx
+              return (
+                <button key={s.key} onClick={() => setStepIdx(i)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left transition-all group"
+                  style={active ? { background: s.from + '15' } : {}}>
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black transition-all"
+                    style={active || done
+                      ? { background: active ? s.from : '#10b981', color: '#fff' }
+                      : { background: '#f1f5f9', color: '#94a3b8' }}>
+                    {done && !active ? <Check size={11} /> : i + 1}
+                  </div>
+                  <SIcon size={14} className="flex-shrink-0" style={{ color: active ? s.from : '#94a3b8' }} />
+                  <span className="text-sm flex-1 truncate font-medium"
+                    style={{ color: active ? s.from : done ? '#334155' : '#94a3b8' }}>
+                    {s.label}
+                  </span>
+                  {active && <ChevronRight size={12} style={{ color: s.from }} />}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </div>
 
-            {/* Tags de sugestão + customs na mesma linha */}
+      {/* ── Painel direito ── */}
+      <div className="flex-1 flex flex-col gap-4 min-w-0">
+
+        {/* Banner gradiente */}
+        <div className="rounded-2xl overflow-hidden relative flex-shrink-0"
+          style={{ background: `linear-gradient(135deg, ${step.from}, ${step.to})` }}>
+          <WaveDecor />
+          <div className="relative z-10 flex items-center gap-4 px-7 py-6">
+            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Icon size={26} className="text-white" />
+            </div>
             <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">
-                Selecione os itens relevantes
+              <p className="text-white/70 text-xs font-bold uppercase tracking-widest">
+                ETAPA {stepIdx + 1} DE {total}
               </p>
+              <h2 className="text-white text-2xl font-black mt-0.5">{step.label}</h2>
+              <p className="text-white/80 text-sm mt-0.5">{step.descricao}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Conteúdo da etapa */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+            {/* Tags principais */}
+            <div>
+              <p className="text-sm font-bold text-slate-700 mb-3">Selecione os itens relevantes</p>
               <div className="flex flex-wrap gap-2">
-                {(step.sugestoes as readonly string[]).map(s => (
-                  <Tag
-                    key={s} label={s}
-                    active={selected.includes(s)}
-                    onClick={() => toggle(s)}
-                    accent={step.accent}
-                  />
+                {step.sugestoes.map(s => (
+                  <Tag key={s} label={s}
+                    active={(state[step.key] as string[]).includes(s)}
+                    accent={step.from}
+                    onClick={() => toggleItem(step.key, s)} />
                 ))}
-                {customItens.map((item, i) => (
-                  <span
-                    key={`c${i}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white animate-fade-up"
-                    style={{ background: step.accent }}
-                  >
-                    {item}
-                    <button onClick={() => removeCustom(i)} className="hover:opacity-70 transition-opacity">
+                {/* Itens customizados */}
+                {(state.custom[step.key] || []).map(v => (
+                  <div key={v} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium text-white"
+                    style={{ background: step.from }}>
+                    <Check size={13} />
+                    {v}
+                    <button onClick={() => removeCustom(v)} className="ml-0.5 hover:opacity-70">
                       <X size={11} />
                     </button>
-                  </span>
+                  </div>
                 ))}
               </div>
             </div>
 
-            {/* Extras + input personalizado: layout horizontal */}
-            <div className="flex flex-wrap gap-x-6 gap-y-4 items-start border-t border-slate-100 pt-4">
-              {step.extras.map(extra => (
-                <div key={extra.campo} className="flex-shrink-0">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">{extra.label}</p>
-                  {(extra as any).input ? (
+            {/* Extras + Adicionar + Observação */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+              {/* Extras da etapa */}
+              {step.extras.map(ex => (
+                <div key={ex.campo}>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                    {ex.label}
+                  </p>
+                  {ex.input ? (
                     <input
-                      value={state.extras[`${step.key}_${extra.campo}`] || ''}
-                      onChange={e => setState(prev => ({
-                        ...prev,
-                        extras: { ...prev.extras, [`${step.key}_${extra.campo}`]: e.target.value },
-                      }))}
                       placeholder="Digite o valor..."
-                      className="border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all w-40"
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all"
+                      value={(state.extras[`${step.key}_${ex.campo}`] || [])[0] || ''}
+                      onChange={e => setState(p => ({
+                        ...p,
+                        extras: { ...p.extras, [`${step.key}_${ex.campo}`]: e.target.value ? [e.target.value] : [] }
+                      }))}
                     />
                   ) : (
                     <div className="flex flex-wrap gap-1.5">
-                      {extra.opcoes.map((opt: string) => {
-                        const k = `${step.key}_${extra.campo}`
-                        const isMulti = !!(extra as any).multiSelect
-                        const isActive = isMulti
-                          ? (state.extras[k] || '').split('|').filter(Boolean).includes(opt)
-                          : state.extras[k] === opt
+                      {ex.opcoes.map(o => {
+                        const k = `${step.key}_${ex.campo}`
+                        const active = (state.extras[k] || []).includes(o)
                         return (
-                          <button
-                            key={opt}
-                            onClick={() => toggleExtra(extra.campo, opt, isMulti)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${
-                              isActive ? 'text-white border-transparent' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
-                            }`}
-                            style={isActive ? { background: step.accent, borderColor: step.accent } : {}}
-                          >
-                            {isActive && isMulti && <CheckCircle2 size={10} className="inline mr-1 mb-0.5" />}
-                            {opt}
+                          <button key={o} onClick={() => toggleExtra(step.key, ex.campo, o, ex.multi)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all"
+                            style={active
+                              ? { background: step.from, borderColor: step.from, color: '#fff' }
+                              : { background: '#fff', borderColor: '#e2e8f0', color: '#64748b' }}>
+                            {active && <CheckCircle2 size={11} />}
+                            {o}
                           </button>
                         )
                       })}
@@ -466,112 +427,89 @@ export default function CanvasOperacional() {
                 </div>
               ))}
 
-              {/* Input personalizado inline */}
-              <div className="flex-1 min-w-[180px]">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Adicionar item</p>
+              {/* Adicionar item personalizado */}
+              <div>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  Adicionar item <span className="normal-case font-normal">(opcional)</span>
+                </p>
                 <div className="flex gap-2">
                   <input
                     value={customInput}
                     onChange={e => setCustomInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addCustom()}
                     placeholder="Item personalizado..."
-                    className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all min-w-0"
+                    className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 transition-all min-w-0"
                   />
-                  <button
-                    onClick={addCustom}
-                    disabled={!customInput.trim()}
-                    className="w-9 h-9 rounded-xl text-white flex items-center justify-center transition-all disabled:opacity-30 hover:opacity-90 flex-shrink-0"
-                    style={{ background: step.accent }}
-                  >
-                    <Plus size={14} />
+                  <button onClick={addCustom} disabled={!customInput.trim()}
+                    className="w-9 h-9 rounded-xl flex items-center justify-center text-white flex-shrink-0 disabled:opacity-40 transition-all"
+                    style={{ background: step.from }}>
+                    <Plus size={16} />
                   </button>
                 </div>
               </div>
 
-              {/* Observação inline */}
-              <div className="flex-1 min-w-[220px]">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Observação</p>
+              {/* Observação */}
+              <div>
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  Observação <span className="normal-case font-normal">(opcional)</span>
+                </p>
                 <textarea
-                  value={state.notas[step.key] || ''}
-                  onChange={e => setState(prev => ({
-                    ...prev,
-                    notas: { ...prev.notas, [step.key]: e.target.value },
-                  }))}
+                  rows={3}
+                  value={state.notas[step.key]}
+                  onChange={e => setState(p => ({ ...p, notas: { ...p.notas, [step.key]: e.target.value } }))}
                   placeholder="Detalhe extra para o profissional..."
-                  rows={2}
-                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 resize-none transition-all"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-50 resize-none transition-all"
                 />
               </div>
             </div>
           </div>
 
-          {/* ── Footer navegação ── */}
-          <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3">
+          {/* Navegação */}
+          <div className="border-t border-slate-100 px-6 py-4 flex items-center justify-between flex-shrink-0">
+            {/* Anterior */}
             <button
-              onClick={() => goTo(Math.max(0, stepIdx - 1))}
+              onClick={() => setStepIdx(p => Math.max(0, p - 1))}
               disabled={stepIdx === 0}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium text-slate-500 hover:bg-white hover:shadow-sm disabled:opacity-30 transition-all"
-            >
-              <ChevronLeft size={14} /> Anterior
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl disabled:opacity-30 hover:bg-slate-50 transition-all">
+              <ChevronLeft size={15} /> Anterior
             </button>
 
             {/* Dots */}
             <div className="flex items-center gap-1.5">
-              {STEPS.map((_, i) => {
-                const done = ((state[STEPS[i].key] as string[]) || []).length > 0
-                return (
-                  <button
-                    key={i}
-                    onClick={() => goTo(i)}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === stepIdx ? 'w-5 h-2' : done ? 'w-2 h-2 bg-green-400' : 'w-2 h-2 bg-slate-200 hover:bg-slate-300'
-                    }`}
-                    style={i === stepIdx ? { background: step.accent } : {}}
-                  />
-                )
-              })}
+              {STEPS.map((s, i) => (
+                <button key={i} onClick={() => setStepIdx(i)}
+                  className="rounded-full transition-all duration-300"
+                  style={{
+                    width: i === stepIdx ? 20 : 8,
+                    height: 8,
+                    background: i === stepIdx ? step.from : (state[s.key] as string[]).length > 0 ? step.from + '60' : '#e2e8f0',
+                  }} />
+              ))}
             </div>
 
-            {isLast ? (
+            {/* Próxima / Gerar */}
+            {stepIdx < total - 1 ? (
               <button
-                onClick={() => setPlano(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white shadow-md transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #1e40af, #0f766e)' }}
-              >
-                <FileOutput size={13} /> Gerar Briefing
+                onClick={() => setStepIdx(p => p + 1)}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white rounded-xl shadow-sm hover:opacity-90 transition-all"
+                style={{ background: `linear-gradient(135deg,${step.from},${step.to})` }}>
+                Próxima <ChevronRight size={15} />
               </button>
             ) : (
               <button
-                onClick={() => goTo(Math.min(STEPS.length - 1, stepIdx + 1))}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{ background: step.accent }}
-              >
-                Próxima <ChevronRight size={14} />
+                onClick={() => setPlano(true)}
+                className="flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white rounded-xl shadow-md hover:opacity-90 transition-all"
+                style={{ background: `linear-gradient(135deg,${step.from},${step.to})` }}>
+                <FileOutput size={15} /> Gerar Briefing <ChevronRight size={15} />
               </button>
             )}
           </div>
         </div>
 
-        {/* Mobile step strip */}
-        <div className="sm:hidden mt-3 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-          {STEPS.map((s, i) => {
-            const done = ((state[s.key] as string[]) || []).length > 0
-            const active = i === stepIdx
-            return (
-              <button
-                key={s.key}
-                onClick={() => goTo(i)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all ${
-                  active ? 'text-white shadow-sm' : done ? 'bg-slate-100 text-slate-600' : 'bg-white text-slate-400 border border-slate-100'
-                }`}
-                style={active ? { background: `linear-gradient(135deg, ${s.accent}, ${s.accent}cc)` } : {}}
-              >
-                <s.icon size={11} />
-                {s.label}
-                {done && !active && <CheckCircle2 size={10} className="text-green-500" />}
-              </button>
-            )
-          })}
+        {/* Dica */}
+        <div className="flex items-center justify-center gap-2 text-xs text-slate-400 pb-1">
+          <Sparkles size={13} />
+          Dica: quanto mais contexto você informar, melhores serão os insights gerados.
         </div>
       </div>
     </div>
