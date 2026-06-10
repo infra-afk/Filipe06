@@ -1,0 +1,21 @@
+name: VM Setup Completo
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup:
+    runs-on: self-hosted
+    steps:
+      - name: Clonar repositório
+        run: |
+          sudo mkdir -p /var/www/dashboard
+          sudo chown srv_app:srv_app /var/www/dashboard
+          if [ -d "/var/www/dashboard/.git" ]; then
+            cd /var/www/dashboard && git pull origin main
+          else
+            git clone https://github.com/infra-afk/Filipe06 /var/www/dashboard
+          fi
+
+      - name: Executar setup completo
+        run: bash /var/www/dashboard/setup-vm.sh

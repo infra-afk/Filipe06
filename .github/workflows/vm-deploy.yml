@@ -1,0 +1,16 @@
+name: VM Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Comando para executar na VM'
+        required: true
+        default: 'echo ok'
+
+jobs:
+  run-on-vm:
+    runs-on: self-hosted
+    steps:
+      - name: Executar comando
+        run: ${{ github.event.inputs.command }}
