@@ -1,0 +1,106 @@
+name: VM Migração de Código
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: self-hosted
+    steps:
+      - name: Instalar dependências do sistema
+        run: |
+          sudo apt update -qq
+          sudo apt install -y postgresql postgresql-contrib nginx git ripgrep
+          sudo systemctl enable postgresql nginx
+          sudo systemctl start postgresql nginx
+
+      - name: Configurar PostgreSQL
+        run: |
+          sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='dashboard_user'" | grep -q 1 || \
+            sudo -u postgres psql -c "CREATE USER dashboard_user WITH PASSWORD 'Chua@2026!Secure';"
+          sudo -u postgres psql -c "CREATE DATABASE dashboard_db OWNER dashboard_user;" 2>/dev/null || true
+          sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE dashboard_db TO dashboard_user;"
+
+      - name: Clonar ou atualizar repositório
+        run: |
+          if [ -d "/var/www/dashboard/.git" ]; then
+            cd /var/www/dashboard && git pull origin main
+          else
+            sudo mkdir -p /var/www/dashboard
+            sudo chown srv_app:srv_app /var/www/dashboard
+            git clone https://github.com/infra-afk/Filipe06 /var/www/dashboard
+          fi
+
+      - name: Aplicar schema no banco
+        run: |
+          psql postgresql://dashboard_user:Chua@2026!Secure@localhost:5432/dashboard_db \
+            -f /var/www/dashboard/supabase/schema_vm.sql
+
+      - name: Criar arquivos .env
+        run: |
+          mkdir -p /var/www/dashboard/apps/api
+          mkdir -p /var/www/dashboard/apps/web
+          cat > /var/www/dashboard/apps/api/.env << 'EOF'
+          PORT=3001
+          DATABASE_URL=postgresql://dashboard_user:Chua@2026!Secure@localhost:5432/dashboard_db
+          JWT_SECRET=chua_jwt_secret_2026_ultra_secure_key
+          JWT_EXPIRES_IN=7d
+          FRONTEND_URL=http://localhost
+          NODE_ENV=production
+          EOF
+          cat > /var/www/dashboard/apps/web/.env << 'EOF'
+          VITE_API_URL=
+          EOF
+
+      - name: Instalar dependências Node.js
+        run: |
+          cd /var/www/dashboard
+          npm install
+
+      - name: Instalar PM2
+        run: |
+          npm install -g pm2
+          pm2 startup systemd -u srv_app --hp /home/srv_app | tail -1 | sudo bash || true
+
+      - name: Configurar Nginx
+        run: |
+          sudo tee /etc/nginx/sites-available/dashboard << 'EOF'
+          server {
+              listen 80;
+              server_name _;
+              root /var/www/dashboard/apps/web/dist;
+              index index.html;
+              location / {
+                  try_files $uri $uri/ /index.html;
+              }
+              location /api/ {
+                  proxy_pass http://localhost:3001/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header Authorization $http_authorization;
+                  proxy_pass_header Authorization;
+              }
+              location /auth/ {
+                  proxy_pass http://localhost:3001/auth/;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+                  proxy_set_header Authorization $http_authorization;
+                  proxy_pass_header Authorization;
+              }
+          }
+          EOF
+          sudo ln -sf /etc/nginx/sites-available/dashboard /etc/nginx/sites-enabled/
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo nginx -t && sudo systemctl reload nginx
+
+      - name: Verificar setup
+        run: |
+          echo "=== PostgreSQL ==="
+          sudo systemctl is-active postgresql
+          echo "=== Nginx ==="
+          sudo systemctl is-active nginx
+          echo "=== Banco ==="
+          psql postgresql://dashboard_user:Chua@2026!Secure@localhost:5432/dashboard_db -c "\dt" 2>&1 | head -20
+          echo "=== Projeto ==="
+          ls /var/www/dashboard
