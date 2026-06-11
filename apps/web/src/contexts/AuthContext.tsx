@@ -1,9 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-import { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { authLogin, authLogout, getToken, getUser } from '../lib/auth'
+
+interface User {
+  id: string
+  email: string
+  full_name?: string
+}
 
 interface AuthContextValue {
-  session: Session | null
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<string | null>
@@ -13,33 +17,35 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession()
-      .then(({ data: { session } }) => setSession(session))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => subscription.unsubscribe()
+    const token = getToken()
+    if (token) {
+      const u = getUser()
+      setUser(u)
+    }
+    setLoading(false)
   }, [])
 
-  async function signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return error ? error.message : null
+  async function signIn(email: string, password: string): Promise<string | null> {
+    try {
+      const { user } = await authLogin(email, password)
+      setUser(user)
+      return null
+    } catch (err: any) {
+      return err.message
+    }
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    await authLogout()
+    setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )
