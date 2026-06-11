@@ -22,7 +22,7 @@ import Formulario from './pages/Formulario'
 import { Loader2 } from 'lucide-react'
 
 function AppRoutes() {
-  const { session, loading } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) {
     return (
@@ -32,7 +32,7 @@ function AppRoutes() {
     )
   }
 
-  if (!session) {
+  if (!user) {
     return (
       <BrowserRouter>
         <Routes>

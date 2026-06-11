@@ -29,7 +29,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const pageName = pageNames[location.pathname] ||
     (location.pathname.startsWith('/canvas/') ? 'Canvas' : 'Dashboard')
 
-  const initials = (user?.user_metadata?.full_name || user?.email || 'U')
+  const initials = (user?.full_name || user?.email || 'U')
     .slice(0, 2).toUpperCase()
 
   return (

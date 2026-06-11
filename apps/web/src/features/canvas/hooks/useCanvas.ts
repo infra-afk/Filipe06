@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { api } from '../../../lib/api'
+import { getToken } from '../../../lib/auth'
 import type { Canvas, CanvasItem, CanvasSection } from '../types'
 import { arrayMove } from '@dnd-kit/sortable'
 
 export function useCanvas(canvasId: string) {
-  const { session } = useAuth()
+  const { user } = useAuth()
   const [canvas, setCanvas] = useState<Canvas | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const token = session?.access_token || ''
+  const token = getToken() || ''
   const client = api(token)
 
   const load = useCallback(async () => {

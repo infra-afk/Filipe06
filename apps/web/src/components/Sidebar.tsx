@@ -39,7 +39,7 @@ interface SidebarProps {
 export default function Sidebar({ onClose }: SidebarProps) {
   const { signOut, user } = useAuth()
 
-  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'Usuário'
   const initials = displayName.slice(0, 2).toUpperCase()
 
   return (

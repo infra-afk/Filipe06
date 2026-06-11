@@ -767,7 +767,7 @@ function SecaoPerfil() {
   const { user } = useAuth()
   const [showPass, setShowPass] = useState(false)
   const [saved, setSaved] = useState(false)
-  const nome = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuário'
+  const nome = user?.full_name || user?.email?.split('@')[0] || 'Usuário'
   const initials = nome.slice(0, 2).toUpperCase()
   return (
     <div className="space-y-4">
