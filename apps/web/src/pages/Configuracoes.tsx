@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import {
   Building2, User, Bell, Database, Shield, Palette, Users,
   Check, Eye, EyeOff, Plus, Trash2, Mail, Phone, Globe,
@@ -710,12 +710,139 @@ function SecaoNotificacoes() {
   )
 }
 
+// ─── Upload de logo do banner ─────────────────────────────────────────────────
+
+const LOGO_KEY = 'chua_banner_logo'
+
+function SecaoLogo() {
+  const [logoUrl, setLogoUrl] = useState<string>(() => localStorage.getItem(LOGO_KEY) || '')
+  const [dragging, setDragging] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'ok' | 'erro'>('idle')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) {
+      setStatus('erro')
+      setTimeout(() => setStatus('idle'), 3000)
+      return
+    }
+    setLoading(true)
+    try {
+      const form = new FormData()
+      form.append('logo', file)
+      const res = await fetch('/api/upload/logo', { method: 'POST', body: form })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      const url = `${data.url}?t=${Date.now()}`
+      setLogoUrl(url)
+      localStorage.setItem(LOGO_KEY, url)
+      window.dispatchEvent(new Event('chua-logo-change'))
+      setStatus('ok')
+      setTimeout(() => setStatus('idle'), 2500)
+    } catch {
+      setStatus('erro')
+      setTimeout(() => setStatus('idle'), 3000)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleRemove() {
+    fetch('/api/upload/logo', { method: 'DELETE' })
+    setLogoUrl('')
+    localStorage.removeItem(LOGO_KEY)
+    window.dispatchEvent(new Event('chua-logo-change'))
+  }
+
+  return (
+    <SectionCard title="Imagem do Banner (Canvas)" icon={Upload}>
+      <div className="space-y-4">
+        <p className="text-xs text-slate-500">
+          Esta imagem aparece no banner acima do Canvas Operacional. Ela é redimensionada proporcionalmente sem corte.
+        </p>
+
+        {/* Prévia */}
+        <div
+          className={`relative w-full rounded-2xl overflow-hidden border-2 transition-all ${
+            dragging ? 'border-blue-400 bg-blue-50' : 'border-dashed border-slate-200 bg-slate-50'
+          }`}
+          style={{ height: '140px' }}
+          onDragOver={e => { e.preventDefault(); setDragging(true) }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => {
+            e.preventDefault()
+            setDragging(false)
+            const file = e.dataTransfer.files[0]
+            if (file) handleFile(file)
+          }}
+        >
+          {logoUrl ? (
+            <>
+              <img
+                src={logoUrl}
+                alt="Logo do banner"
+                className="w-full h-full"
+                style={{ objectFit: 'contain', objectPosition: 'center' }}
+              />
+              <button
+                onClick={handleRemove}
+                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/50 hover:bg-red-600 flex items-center justify-center transition-colors"
+                title="Remover imagem"
+              >
+                <X size={13} className="text-white" />
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full gap-2 text-slate-400">
+              <Upload size={28} strokeWidth={1.5} />
+              <p className="text-sm font-medium">Arraste a imagem aqui</p>
+              <p className="text-xs">ou clique no botão abaixo</p>
+            </div>
+          )}
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+
+        <input ref={inputRef} type="file" accept="image/*" className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }} />
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50"
+          >
+            <Upload size={14} />
+            {logoUrl ? 'Trocar imagem' : 'Selecionar imagem'}
+          </button>
+          {status === 'ok' && (
+            <span className="flex items-center gap-1.5 text-sm text-green-600 font-medium">
+              <CheckCircle2 size={15} /> Imagem salva!
+            </span>
+          )}
+          {status === 'erro' && (
+            <span className="flex items-center gap-1.5 text-sm text-red-600 font-medium">
+              <AlertCircle size={15} /> Erro — use PNG, JPG ou WebP (máx 5 MB)
+            </span>
+          )}
+          <span className="ml-auto text-xs text-slate-400">PNG, JPG, WebP, SVG — máx 5 MB</span>
+        </div>
+      </div>
+    </SectionCard>
+  )
+}
+
 // ─── Seções existentes (inalteradas) ─────────────────────────────────────────
 
 function SecaoEmpresa() {
   const [saved, setSaved] = useState(false)
   return (
     <div className="space-y-4">
+      <SecaoLogo />
       <SectionCard title="Dados da Empresa" icon={Building2}>
         <div className="grid grid-cols-2 gap-4">
           <Campo label="Nome da empresa"><Input defaultValue="CHUA" /></Campo>

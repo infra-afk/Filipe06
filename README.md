@@ -1,200 +1,200 @@
-# CHUÁ — Solicitações de Dashboard 
+# CHUÁ — Plataforma de Solicitações de Dashboard
 
-Plataforma de gestão operacional com Canvas Estratégico, Kanban de dashboards e registro de documentação para auditoria.
-
----
-
-## Stack Técnica
-
-### Frontend
-| Tecnologia | O que faz no projeto |
-|---|---|
-| **React 18** | Biblioteca principal para construção das interfaces. Usa componentes funcionais com hooks (`useState`, `useEffect`, `useContext`, `useCallback`). |
-| **Vite** | Ferramenta de build e servidor de desenvolvimento. Substitui o Create React App — inicia em menos de 1 segundo e faz hot-reload instantâneo ao salvar arquivos. |
-| **TypeScript** | Adiciona tipagem estática ao JavaScript. Evita erros em tempo de execução, autocompleta variáveis e garante contratos entre componentes (ex: interface `KanbanCard`). |
-| **Tailwind CSS** | Framework de CSS utilitário. As classes são escritas diretamente no HTML (`px-4 py-2 rounded-xl`) sem criar arquivos `.css` separados. Gera apenas o CSS que é usado. |
-| **Recharts** | Biblioteca de gráficos para React. Usada para barras, linhas e indicadores visuais nos dashboards. Baseada em SVG e D3. |
-| **@dnd-kit** | Drag-and-drop acessível. Usado no Kanban para arrastar cards entre colunas com suporte a teclado e touch. |
-| **React Router v6** | Gerencia as rotas da SPA (`/kanban`, `/canvases`, `/formulario`). Usa `useNavigate` para redirecionamentos e `NavLink` para o menu lateral. |
-| **Lucide React** | Biblioteca de ícones SVG. Leves, consistentes e customizáveis por tamanho e cor. |
-
-### Backend
-| Tecnologia | O que faz no projeto |
-|---|---|
-| **Node.js** | Ambiente de execução JavaScript no servidor. Processa requisições da API fora do navegador. |
-| **Express** | Framework minimalista para criar rotas HTTP (`GET /api/canvases`, `POST /api/items`, etc.). Lida com middlewares de autenticação e tratamento de erros. |
-| **TypeScript** | Mesma tipagem do frontend aplicada ao backend. Garante que os dados que chegam pela API têm o formato correto antes de chegar ao banco. |
-| **Zod** | Validação de schemas em runtime. Toda requisição passa por um schema Zod antes de ser processada — se o payload estiver errado, retorna erro 400 com mensagem clara. |
-
-### Banco de Dados e Autenticação
-| Tecnologia | O que faz no projeto |
-|---|---|
-| **Supabase** | Plataforma backend-as-a-service. Fornece banco de dados, autenticação e API REST/realtime prontos para uso sem configurar servidor próprio. |
-| **PostgreSQL** | Banco de dados relacional usado pelo Supabase. Armazena usuários, canvases, cards e toda estrutura do projeto. |
-| **Supabase Auth** | Sistema de autenticação com email e senha. Gera JWT (token) que é validado em cada requisição ao backend. |
-| **RLS (Row Level Security)** | Regra no banco que impede um usuário de ler ou alterar dados de outro. Mesmo que alguém descubra a chave pública, não consegue acessar dados alheios. |
-
-### Deploy e Infraestrutura
-| Tecnologia | O que faz no projeto |
-|---|---|
-| **Vercel** | Plataforma de deploy para frontend. Faz o build do Vite automaticamente, distribui via CDN global e disponibiliza em HTTPS. Deploy feito via CLI (`npx vercel --prod`). URL atual: `filipe06-web-3jso.vercel.app` |
-| **GitHub** | Repositório do código. Cada `git push origin main` atualiza o histórico e dispara o deploy na Vercel. |
+> Plataforma interna para criação, gestão e rastreamento de dashboards operacionais via Canvas, Kanban e Formulário.
 
 ---
 
-## Como rodar localmente
+## Visão Geral
 
-### 1. Banco de dados (Supabase)
+O **Chuá** é uma aplicação web full-stack que permite às equipes:
 
-Acesse o [Supabase Dashboard](https://supabase.com/dashboard), abra o projeto, vá em **SQL Editor** e execute:
+- Montar briefings de dashboard através de um **Canvas Operacional** guiado em 9 etapas
+- Acompanhar o progresso das solicitações em um **quadro Kanban**
+- Registrar solicitações via **Formulário** estruturado
+- Visualizar **indicadores financeiros e operacionais** em tempo real
+- Configurar a plataforma com logo personalizado e dados da empresa
+
+---
+
+## Stack Tecnológica
+
+| Camada | Tecnologia |
+|--------|-----------|
+| Frontend | React 18 + Vite + TypeScript + Tailwind CSS |
+| Backend | Node.js + Express + TypeScript + Zod |
+| Banco de dados | PostgreSQL 16 (driver `pg`, sem Supabase) |
+| Autenticação | JWT (bcryptjs + jsonwebtoken) |
+| Infra | Nginx + PM2 em VM Ubuntu 24.04 LTS |
+| Gráficos | Recharts |
+| Drag & Drop | dnd-kit |
+
+---
+
+## Estrutura do Projeto
 
 ```
-supabase/schema.sql
+dashboard/
+├── apps/
+│   ├── api/                  # Backend Node.js + Express
+│   │   └── src/
+│   │       ├── auth/         # Registro, login, refresh JWT
+│   │       ├── db.ts         # Pool de conexão PostgreSQL
+│   │       ├── middleware/   # Middleware JWT
+│   │       ├── modules/
+│   │       │   └── canvas/   # Rotas, queries e schemas de canvas
+│   │       └── index.ts      # Entrypoint da API
+│   └── web/                  # Frontend React
+│       └── src/
+│           ├── components/   # Layout, Sidebar, Topbar
+│           ├── contexts/     # AuthContext, ThemeContext
+│           ├── data/         # Seed de dados iniciais
+│           ├── pages/        # Páginas da aplicação
+│           ├── store/        # KanbanStore (localStorage)
+│           └── lib/          # api.ts, auth.ts
+├── supabase/
+│   └── schema_vm.sql         # Schema PostgreSQL puro
+├── uploads/                  # Logos e imagens enviadas
+└── CLAUDE.md                 # Guia de desenvolvimento
 ```
 
-Isso cria as tabelas, índices, RLS e triggers automaticamente.
+---
+
+## Funcionalidades
+
+### Canvas Operacional
+- Formulário guiado em 9 etapas: Objetivos, Indicadores, Vendas, Despesas, Devoluções, DRE, Alertas, Decisões e Agentes IA
+- Progresso circular em tempo real
+- Geração automática de briefing ao concluir
+- Envio direto para o Kanban
+
+### Kanban
+- Colunas: Entrada → Em Análise → Em Desenvolvimento → Em Revisão → Concluído
+- Drag & drop entre colunas
+- Cards com briefing completo, rastreabilidade de datas e tags
+- Arquivamento de cards concluídos
+- Busca integrada no Canvas
+
+### Formulário
+- Registro estruturado de nova solicitação de dashboard
+- Integração com o Kanban
+
+### Dashboard de Indicadores
+- Receita, EBITDA, Margem, Churn, Vendas e Ticket Médio
+- Gráficos de linha, barra e área via Recharts
+- Dados de vendas, despesas, devoluções e DRE
+
+### Configurações
+- Upload de logo personalizado (PNG, JPG, WEBP, SVG — até 5MB)
+- Logo refletido em tempo real na Sidebar e no Canvas
+- Dados da empresa, integrações e preferências
+
+---
+
+## Instalação e Execução
+
+### Pré-requisitos
+
+- Node.js 20+
+- PostgreSQL 16+
+- PM2 (`npm install -g pm2`)
+- Nginx
+
+### 1. Banco de dados
+
+```bash
+psql -U postgres -c "CREATE DATABASE dashboard_db;"
+psql -U postgres -c "CREATE USER dashboard_user WITH PASSWORD 'Chua@2026!Secure';"
+psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE dashboard_db TO dashboard_user;"
+psql -U postgres -d dashboard_db -f supabase/schema_vm.sql
+```
 
 ### 2. Variáveis de ambiente
 
-Copie `.env.example` para `.env` e preencha:
-
+**`apps/api/.env`**
 ```env
-VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJ...        # Project API Keys → anon/public
-VITE_API_URL=http://localhost:3000
-
-SUPABASE_URL=https://SEU_PROJETO.supabase.co
-SUPABASE_ANON_KEY=eyJ...             # Project API Keys → anon/public
-SUPABASE_SERVICE_ROLE_KEY=eyJ...     # Project API Keys → service_role (nunca expor no frontend)
-PORT=3000
-FRONTEND_URL=http://localhost:5173
+PORT=3001
+DATABASE_URL=postgresql://dashboard_user:Chua@2026!Secure@localhost:5432/dashboard_db
+JWT_SECRET=chua_jwt_secret_2026_ultra_secure_key
+JWT_EXPIRES_IN=7d
+FRONTEND_URL=http://localhost
+NODE_ENV=production
 ```
 
-> As chaves ficam em: **Supabase → Project Settings → API**
+**`apps/web/.env`**
+```env
+VITE_API_URL=
+```
 
-### 3. Instalar e rodar
+### 3. Instalar dependências e buildar
 
 ```bash
+# Instalar dependências
 npm install
-npm run dev
+
+# Build do frontend
+npm run build
+
+# Build da API
+cd apps/api && npm run build
 ```
 
----
-
-## Deploy na Vercel
+### 4. Iniciar com PM2
 
 ```bash
-# Primeira vez (linka ao projeto)
-cd apps/web
-npx vercel link --project filipe06-web-3jso --yes
+pm2 start ecosystem.config.js
+```
 
-# Deploy de produção (use sempre este comando após alterações)
-cd "C:\Users\Filipe\Desktop\Dashboard Gestão"
-git add -A
-git commit -m "descrição das alterações"
-git push origin main
-cd apps/web
-npx vercel --prod --yes
+### 5. Nginx
+
+Configure o Nginx apontando:
+- `/` → `apps/web/dist/` (frontend estático)
+- `/api` → `http://127.0.0.1:3001` (API)
+- `/auth` → `http://127.0.0.1:3001`
+- `/uploads/` → `uploads/` (arquivos enviados)
+
+---
+
+## Usuário Administrador
+
+Para criar o primeiro usuário admin via psql:
+
+```sql
+INSERT INTO app_auth.users (email, full_name, password_hash, role)
+VALUES (
+  'admin@chuasa.com',
+  'Administrador',
+  crypt('123456', gen_salt('bf')),
+  'admin'
+);
 ```
 
 ---
 
-## URLs
+## Variáveis de Ambiente
 
-| Serviço | URL |
-|---|---|
-| Produção | https://filipe06-web-3jso.vercel.app |
-| Frontend local | http://localhost:5173 |
-| API local | http://localhost:3000 |
-| Health check | http://localhost:3000/health |
-
----
-
-## Telas disponíveis
-
-| Rota | Descrição |
-|---|---|
-| `/login` | Autenticação via Supabase Auth |
-| `/canvases` | Canvas Operacional — wizard de 9 etapas para mapear um dashboard |
-| `/kanban` | Kanban de dashboards com drag-and-drop, WIP limits e rastreabilidade |
-| `/formulario` | Registro formal para auditoria com resumo executivo auto-gerado |
-| `/configuracoes` | Tema (claro/escuro/automático) e preferências |
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `PORT` | Porta da API | `3001` |
+| `DATABASE_URL` | URL de conexão PostgreSQL | — |
+| `JWT_SECRET` | Chave secreta JWT | — |
+| `JWT_EXPIRES_IN` | Expiração do token | `7d` |
+| `FRONTEND_URL` | URL do frontend (CORS) | `http://localhost` |
+| `NODE_ENV` | Ambiente | `production` |
 
 ---
 
-## Funcionalidades principais
-
-### Canvas Operacional
-- Wizard de 9 etapas: Objetivos → Indicadores → Vendas → Despesas → Devoluções → DRE → Alertas → Decisões → Agentes IA
-- Título, Responsável e Solicitante definidos em Objetivos e propagados para todas as etapas
-- Validação: todas as etapas devem ser preenchidas antes de gerar o briefing
-- Pesquisa de dashboards já existentes no Kanban antes de criar um novo
-- "Gerar Briefing" cria o card no Kanban e redireciona automaticamente
-
-### Kanban
-- 5 colunas padrão (Entrada → Em Análise → Em Desenvolvimento → Em Revisão → Concluído)
-- Drag-and-drop com **confirmação de movimentação** — registra a data da etapa automaticamente
-- WIP limits por coluna
-- Aba "Briefing do Canvas" editável em cada card — documentação completa para auditoria
-- Arquivamento de cards concluídos → aparecem no Relatório
-- Filtros por prioridade, responsável e busca textual
-
-### Formulário (Auditoria)
-- Registro formal de todos os dashboards (ativos + arquivados)
-- **Resumo Executivo** auto-gerado a partir dos dados do Canvas, editável e salvo por card
-- Timeline visual de rastreabilidade com datas de cada etapa
-- Tabela completa do Canvas Operacional (9 seções)
-- Exportação/impressão para PDF
-- Rodapé com campos de assinatura (Elaborado / Revisado / Aprovado)
-
----
-
-## Segurança
-
-- RLS ativa em todas as tabelas — usuário só acessa o próprio conteúdo
-- `SUPABASE_SERVICE_ROLE_KEY` usada apenas no backend, nunca exposta no frontend
-- Payloads validados com Zod em todas as rotas da API
-- JWT do Supabase validado em cada requisição
-
----
-
-## Estrutura de pastas
-
-```
-apps/
-  api/                              # Backend Node.js + Express
-    src/
-      lib/supabase-admin.ts         # Clientes Supabase (admin + por usuário)
-      middleware/auth.ts            # Validação JWT
-      modules/canvas/
-        canvas.routes.ts            # Rotas /api/canvases
-        items.routes.ts             # Rotas /api/items
-        canvas.repository.ts        # Queries no Supabase
-        canvas.schemas.ts           # Validação Zod
-        default-canvas.ts           # Seed padrão
-  web/                              # Frontend React + Vite
-    src/
-      store/
-        kanbanStore.ts              # Estado global dos cards (localStorage)
-      contexts/
-        AuthContext.tsx             # Sessão Supabase
-        ThemeContext.tsx            # Tema claro/escuro/automático
-      pages/
-        CanvasOperacional.tsx       # Wizard de 9 etapas
-        Kanban.tsx                  # Board com drag-and-drop
-        Formulario.tsx              # Registro de auditoria
-        Configuracoes.tsx           # Preferências e tema
-      components/
-        Sidebar.tsx                 # Menu lateral com logo CHUÁ
-supabase/
-  schema.sql                        # Tabelas, RLS e triggers
-```
-
----
-
-## Scripts
+## Scripts Disponíveis
 
 ```bash
-npm run dev        # Roda frontend + backend em paralelo
-npm run build      # Build de produção (gera apps/web/dist)
+npm run build        # Build completo (API + Web)
+npm run dev          # Desenvolvimento local
+pm2 list             # Ver status dos processos
+pm2 logs chua-api    # Ver logs da API
+pm2 restart chua-api # Restartar a API
 ```
+
+---
+
+## Licença
+
+Uso interno — Chuá SA © 2026

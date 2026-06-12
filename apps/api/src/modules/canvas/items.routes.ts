@@ -10,7 +10,7 @@ router.patch('/:itemId', async (req: AuthRequest, res: Response) => {
   const parsed = updateItemSchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() })
   try {
-    const item = await updateItem(req.params.itemId, req.accessToken!, parsed.data)
+    const item = await updateItem(req.params.itemId, req.userId!, parsed.data)
     res.json(item)
   } catch (e: any) {
     res.status(500).json({ error: e.message })
@@ -19,7 +19,7 @@ router.patch('/:itemId', async (req: AuthRequest, res: Response) => {
 
 router.delete('/:itemId', async (req: AuthRequest, res: Response) => {
   try {
-    await deleteItem(req.params.itemId, req.accessToken!)
+    await deleteItem(req.params.itemId, req.userId!)
     res.status(204).send()
   } catch (e: any) {
     res.status(500).json({ error: e.message })

@@ -7,7 +7,7 @@ const router = Router()
 router.post('/register', async (req: Request, res: Response) => {
   const result = registerSchema.safeParse(req.body)
   if (!result.success) {
-    return res.status(400).json({ error: result.error.errors[0].message })
+    return res.status(400).json({ error: result.error.issues[0].message })
   }
 
   try {
@@ -25,7 +25,7 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   const result = loginSchema.safeParse(req.body)
   if (!result.success) {
-    return res.status(400).json({ error: result.error.errors[0].message })
+    return res.status(400).json({ error: result.error.issues[0].message })
   }
 
   try {
