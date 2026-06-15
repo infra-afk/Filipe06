@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { saveCard, getCards, KanbanCard } from '../store/kanbanStore'
 import {
@@ -152,6 +152,7 @@ function WaveDecor() {
 // ─── Plano Final ──────────────────────────────────────────────────────────────
 
 function PlanoFinal({ state, onVoltar }: { state: CanvasState; titulo: string; onVoltar: () => void }) {
+  const bannerLogo = localStorage.getItem('chua_banner_logo') || ''
   const secoes = STEPS.map(s => ({
     ...s,
     itens: [...(state[s.key] as string[]), ...(state.custom[s.key] || [])],
@@ -164,6 +165,16 @@ function PlanoFinal({ state, onVoltar }: { state: CanvasState; titulo: string; o
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
+      {bannerLogo && (
+        <div className="rounded-2xl overflow-hidden mb-4 flex items-center justify-center bg-slate-900"
+          style={{ minHeight: '100px' }}>
+          <img
+            src={bannerLogo}
+            alt="Banner"
+            style={{ maxHeight: '100px', width: '100%', objectFit: 'contain', objectPosition: 'center' }}
+          />
+        </div>
+      )}
       <div className="rounded-2xl overflow-hidden mb-6" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
         <div className="relative px-8 py-8">
           <WaveDecor />
@@ -361,6 +372,17 @@ export default function CanvasOperacional() {
   const [stepIdx, setStepIdx] = useState(0)
   const [state, setState] = useState<CanvasState>(initState)
   const [customInput, setCustomInput] = useState('')
+  const [bannerLogo, setBannerLogo] = useState<string>(
+    () => localStorage.getItem('chua_banner_logo') || ''
+  )
+
+  useEffect(() => {
+    function onLogoChange() {
+      setBannerLogo(localStorage.getItem('chua_banner_logo') || '')
+    }
+    window.addEventListener('chua-logo-change', onLogoChange)
+    return () => window.removeEventListener('chua-logo-change', onLogoChange)
+  }, [])
 
   const step = STEPS[stepIdx]
   const Icon = step.icon
@@ -518,7 +540,6 @@ export default function CanvasOperacional() {
       {/* ── Painel direito ── */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
 
-        {/* Banner gradiente */}
         <div className="rounded-2xl overflow-hidden relative flex-shrink-0"
           style={{ background: `linear-gradient(135deg, ${step.from}, ${step.to})` }}>
           <WaveDecor />

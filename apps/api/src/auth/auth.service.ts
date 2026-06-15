@@ -35,6 +35,18 @@ export async function registerUser(email: string, password: string, full_name?: 
   return { token, user: { id: user.id, email: user.email, full_name: user.full_name } }
 }
 
+export async function changePassword(userId: string, currentPassword: string, newPassword: string) {
+  const { rows } = await pool.query(
+    'SELECT password_hash FROM app_auth.users WHERE id = $1',
+    [userId]
+  )
+  if (rows.length === 0) throw new Error('Usuário não encontrado')
+  const valid = await bcrypt.compare(currentPassword, rows[0].password_hash)
+  if (!valid) throw new Error('Senha atual incorreta')
+  const newHash = await bcrypt.hash(newPassword, 12)
+  await pool.query('UPDATE app_auth.users SET password_hash = $1 WHERE id = $2', [newHash, userId])
+}
+
 export async function loginUser(email: string, password: string) {
   const { rows } = await pool.query(
     'SELECT id, email, password_hash, full_name, ativo FROM app_auth.users WHERE email = $1',

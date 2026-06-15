@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   Settings, LogOut, X, LayoutGrid, Kanban, ClipboardList,
@@ -38,6 +39,13 @@ interface SidebarProps {
 
 export default function Sidebar({ onClose }: SidebarProps) {
   const { signOut, user } = useAuth()
+  const [logoUrl, setLogoUrl] = useState<string>(() => localStorage.getItem('chua_banner_logo') || '')
+
+  useEffect(() => {
+    function onLogoChange() { setLogoUrl(localStorage.getItem('chua_banner_logo') || '') }
+    window.addEventListener('chua-logo-change', onLogoChange)
+    return () => window.removeEventListener('chua-logo-change', onLogoChange)
+  }, [])
 
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'Usuário'
   const initials = displayName.slice(0, 2).toUpperCase()
@@ -47,13 +55,21 @@ export default function Sidebar({ onClose }: SidebarProps) {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
-            <ChuaLogo />
-          </div>
-          <div className="flex flex-col justify-center">
-            <p className="font-black leading-none" style={{ color: '#6D7280', fontSize: '18px', letterSpacing: '0.15em', fontFamily: 'inherit' }}>CHUÁ</p>
-            <p className="leading-none mt-0.5" style={{ color: '#A0A5AE', fontSize: '8px', letterSpacing: '0.22em', fontWeight: 500 }}>ALÉM DA DISTRIBUIÇÃO</p>
-          </div>
+          {logoUrl ? (
+            <div className="flex items-center justify-center" style={{ maxHeight: '48px' }}>
+              <img src={logoUrl} alt="Logo" style={{ maxHeight: '48px', maxWidth: '176px', objectFit: 'contain' }} />
+            </div>
+          ) : (
+            <>
+              <div className="w-11 h-11 flex items-center justify-center flex-shrink-0">
+                <ChuaLogo />
+              </div>
+              <div className="flex flex-col justify-center">
+                <p className="font-black leading-none" style={{ color: '#6D7280', fontSize: '18px', letterSpacing: '0.15em', fontFamily: 'inherit' }}>CHUÁ</p>
+                <p className="leading-none mt-0.5" style={{ color: '#A0A5AE', fontSize: '8px', letterSpacing: '0.22em', fontWeight: 500 }}>SOLICITAÇÕES DE DASHBOARD</p>
+              </div>
+            </>
+          )}
         </div>
         {onClose && (
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-slate-100 lg:hidden" aria-label="Fechar menu">

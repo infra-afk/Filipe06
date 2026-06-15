@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { registerSchema, loginSchema } from './auth.schemas'
-import { registerUser, loginUser, listUsers, deactivateUser, reactivateUser } from './auth.service'
+import { registerUser, loginUser, listUsers, deactivateUser, reactivateUser, changePassword } from './auth.service'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 
 const router = Router()
@@ -62,6 +62,22 @@ router.patch('/users/:id/reativar', authMiddleware as any, async (req: AuthReque
     res.json({ ok: true })
   } catch (e: any) {
     res.status(400).json({ error: e.message })
+  }
+})
+
+router.put('/change-password', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  const { currentPassword, newPassword } = req.body
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Campos obrigatórios' })
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Nova senha deve ter pelo menos 6 caracteres' })
+  }
+  try {
+    await changePassword(req.userId!, currentPassword, newPassword)
+    return res.json({ ok: true })
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message })
   }
 })
 

@@ -5,7 +5,7 @@ import {
   ChevronRight, Layers,
   Zap, Flag, Star, PauseCircle, Lock,
   Filter, Archive, FileText, Target, BarChart2, ShoppingCart,
-  Receipt, RefreshCcw, Bell, Lightbulb, Bot, LogOut,
+  Receipt, RefreshCcw, Bell, Lightbulb, Bot, LogOut, UserCheck,
 } from 'lucide-react'
 import {
   getCards, getArquivados, saveCard as storeSaveCard,
@@ -13,6 +13,7 @@ import {
   loadKanbanFromServer,
   KanbanCard as StoreCard,
 } from '../store/kanbanStore'
+import { useAuth } from '../contexts/AuthContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -406,16 +407,8 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
   onSave: (d: CardDraft) => void; onClose: () => void; onDelete?: () => void; onArquivar?: () => void
 }) {
   const [form, setForm] = useState(draft)
-  const [tagInput, setTagInput] = useState('')
   const [activeTab, setActiveTab] = useState<'detalhes' | 'briefing'>('detalhes')
   const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
-
-  function addTag() {
-    const t = tagInput.trim()
-    if (!t || form.tags.includes(t)) return
-    setForm(p => ({ ...p, tags: [...p.tags, t] }))
-    setTagInput('')
-  }
 
   function removeTag(t: string) {
     setForm(p => ({ ...p, tags: p.tags.filter(x => x !== t) }))
@@ -526,26 +519,15 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
             <p className="text-[11px] text-slate-400 mt-1.5">Registre quando o card passou por cada etapa para rastreabilidade e auditoria.</p>
           </div>
 
-          {/* Tags */}
+          {/* Categoria */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tags</label>
-            <div className="mt-1.5 flex flex-wrap gap-1.5 mb-2">
-              {form.tags.map(t => (
-                <span key={t} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${tagColor(t)}`}>
-                  {t}
-                  <button onClick={() => removeTag(t)} className="hover:opacity-70"><X size={9} /></button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTag()}
-                placeholder="Nova tag..."
-                className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all" />
-              <button onClick={addTag} disabled={!tagInput.trim()}
-                className="px-3 py-2 text-xs font-bold text-white rounded-xl disabled:opacity-40 bg-blue-600 hover:bg-blue-700 transition-all">
-                Add
-              </button>
-            </div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Categoria</label>
+            <input
+              value={form.tags[0] || ''}
+              onChange={e => setForm(p => ({ ...p, tags: e.target.value ? [e.target.value] : [] }))}
+              placeholder="Ex: Vendas, Financeiro, RH..."
+              className="mt-1.5 w-full border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+            />
           </div>
 
           <div>
@@ -621,12 +603,10 @@ function KCard({ card, accent, dragging, exiting, onDragStart, onDragEnd, onClic
         </span>
       </div>
 
-      {/* Tags */}
-      {card.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {card.tags.map(t => (
-            <span key={t} className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${tagColor(t)}`}>{t}</span>
-          ))}
+      {/* Categoria */}
+      {card.tags[0] && (
+        <div className="mb-2">
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${tagColor(card.tags[0])}`}>{card.tags[0]}</span>
         </div>
       )}
 
@@ -826,28 +806,15 @@ function FormRapido({ columns, onSave }: {
   onSave: (d: CardDraft) => void
 }) {
   const [aberto, setAberto] = useState(false)
-  const [tagInput, setTagInput] = useState('')
   const [enviado, setEnviado] = useState(false)
   const [form, setForm] = useState<CardDraft>(blankCard(columns[0]?.id || ''))
 
   const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
 
-  function addTag() {
-    const t = tagInput.trim()
-    if (!t || form.tags.includes(t)) return
-    setForm(p => ({ ...p, tags: [...p.tags, t] }))
-    setTagInput('')
-  }
-
-  function removeTag(t: string) {
-    setForm(p => ({ ...p, tags: p.tags.filter(x => x !== t) }))
-  }
-
   function handleSave() {
     if (!form.nome.trim()) return
     onSave(form)
     setForm(blankCard(columns[0]?.id || ''))
-    setTagInput('')
     setEnviado(true)
     setTimeout(() => setEnviado(false), 2500)
   }
@@ -967,36 +934,17 @@ function FormRapido({ columns, onSave }: {
                 />
               </div>
 
-              {/* Tags */}
-              <div className="lg:col-span-2">
+              {/* Categoria */}
+              <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1.5">
-                  Tags
+                  Categoria
                 </label>
-                <div className="flex gap-2">
-                  <div className="flex-1 flex flex-wrap items-center gap-1.5 border border-slate-200 rounded-xl px-3 py-2 min-h-[42px]">
-                    {form.tags.map(t => (
-                      <span key={t} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${tagColor(t)}`}>
-                        {t}
-                        <button onClick={() => removeTag(t)} className="hover:opacity-70"><X size={9} /></button>
-                      </span>
-                    ))}
-                    <input
-                      value={tagInput}
-                      onChange={e => setTagInput(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addTag()}
-                      placeholder={form.tags.length === 0 ? 'Digite uma tag e pressione Enter...' : 'Mais tags...'}
-                      className="flex-1 min-w-[120px] text-sm outline-none text-slate-700 placeholder-slate-400 bg-transparent"
-                    />
-                  </div>
-                  {tagInput.trim() && (
-                    <button
-                      onClick={addTag}
-                      className="px-3 py-2 text-xs font-bold text-white rounded-xl bg-blue-600 hover:bg-blue-700 transition-all flex-shrink-0"
-                    >
-                      Add
-                    </button>
-                  )}
-                </div>
+                <input
+                  value={form.tags[0] || ''}
+                  onChange={e => setForm(p => ({ ...p, tags: e.target.value ? [e.target.value] : [] }))}
+                  placeholder="Ex: Vendas, Financeiro..."
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100 transition-all"
+                />
               </div>
 
               {/* Observações */}
@@ -1027,7 +975,7 @@ function FormRapido({ columns, onSave }: {
               </p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setForm(blankCard(columns[0]?.id || '')); setTagInput('') }}
+                  onClick={() => { setForm(blankCard(columns[0]?.id || '')) }}
                   className="px-4 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 rounded-xl transition-all"
                 >
                   Limpar
@@ -1141,6 +1089,9 @@ function ConfirmMoveModal({ card, fromCol, toCol, onConfirm, onCancel }: {
 }
 
 export default function Kanban() {
+  const { user } = useAuth()
+  const meNome = user?.full_name || user?.email?.split('@')[0] || ''
+
   const [columns, setColumns] = useState<KanbanColumn[]>(INIT_COLS)
   const [cards,   setCards]   = useState<KanbanCard[]>(loadCards)
   const [dragId,  setDragId]  = useState<string | null>(null)
@@ -1166,21 +1117,30 @@ export default function Kanban() {
   const [pendingMove, setPendingMove] = useState<{ cardId: string; toColId: string } | null>(null)
 
   // Filtros
-  const [search,    setSearch]    = useState('')
-  const [filterPri, setFilterPri] = useState<Priority | ''>('')
-  const [filterResp,setFilterResp]= useState('')
-  const [swimlane,  setSwimlane]  = useState<SwimlaneMode>('none')
+  const [search,      setSearch]      = useState('')
+  const [filterPri,   setFilterPri]   = useState<Priority | ''>('')
+  const [filterResp,  setFilterResp]  = useState('')
+  const [filterTag,   setFilterTag]   = useState('')
+  const [minhaVisao,  setMinhaVisao]  = useState(false)
+  const [swimlane,    setSwimlane]    = useState<SwimlaneMode>('none')
   const [showFilters, setShowFilters] = useState(false)
 
   // Derived
   const visibleCards = cards.filter(c => {
+    if (minhaVisao && meNome) {
+      const nome = c.responsavel.toLowerCase()
+      const me   = meNome.toLowerCase()
+      if (!nome.includes(me) && !me.includes(nome)) return false
+    }
     if (search     && !c.nome.toLowerCase().includes(search.toLowerCase()) && !c.responsavel.toLowerCase().includes(search.toLowerCase())) return false
     if (filterPri  && c.prioridade !== filterPri) return false
     if (filterResp && c.responsavel !== filterResp) return false
+    if (filterTag  && !c.tags.includes(filterTag)) return false
     return true
   })
 
   const allResps = [...new Set(cards.map(c => c.responsavel).filter(Boolean))]
+  const allTags  = [...new Set(cards.flatMap(c => c.tags))].sort()
 
   const swimGroups: string[] = swimlane === 'prioridade'
     ? ['Alta', 'Média', 'Baixa']
@@ -1188,9 +1148,17 @@ export default function Kanban() {
       ? allResps
       : []
 
+  const meusCount = meNome
+    ? cards.filter(c => {
+        const nome = c.responsavel.toLowerCase()
+        const me   = meNome.toLowerCase()
+        return nome.includes(me) || me.includes(nome)
+      }).length
+    : 0
+
   const done  = cards.filter(c => c.coluna === 'concluido').length
   const total = cards.length
-  const activeFilters = [search, filterPri, filterResp].filter(Boolean).length
+  const activeFilters = [search, filterPri, filterResp, filterTag].filter(Boolean).length + (minhaVisao ? 1 : 0)
 
   // Drag — intercepta e pede confirmação
   function handleDrop(colId: string) {
@@ -1351,6 +1319,24 @@ export default function Kanban() {
             <span className="text-xs font-bold text-slate-600">{total ? Math.round((done / total) * 100) : 0}%</span>
           </div>
 
+          <button
+            onClick={() => setMinhaVisao(p => !p)}
+            title={minhaVisao ? 'Mostrar todos os cards' : `Ver apenas meus cards (${meusCount})`}
+            className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
+              minhaVisao
+                ? 'bg-teal-600 text-white border-teal-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-teal-400 hover:text-teal-600'
+            }`}
+          >
+            <UserCheck size={13} />
+            Minha visão
+            {!minhaVisao && meusCount > 0 && (
+              <span className="bg-teal-100 text-teal-700 rounded-full w-4 h-4 text-[10px] font-bold flex items-center justify-center">
+                {meusCount}
+              </span>
+            )}
+          </button>
+
           <button onClick={() => setShowFilters(p => !p)}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border transition-all ${
               showFilters || activeFilters > 0 ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
@@ -1419,6 +1405,18 @@ export default function Kanban() {
             <option value="">Todos responsáveis</option>
             {allResps.map(r => <option key={r} value={r}>{r}</option>)}
           </select>
+
+          {/* Categoria */}
+          {allTags.length > 0 && (
+            <select
+              value={filterTag}
+              onChange={e => setFilterTag(e.target.value)}
+              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-600 outline-none focus:border-blue-400 bg-white"
+            >
+              <option value="">Todas as categorias</option>
+              {allTags.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
 
           {/* Swimlane */}
           <div className="flex items-center gap-1 border border-slate-200 rounded-xl p-1">
