@@ -142,12 +142,12 @@ export function useCanvas(canvasId: string) {
 }
 
 export function useCanvasList() {
-  const { session } = useAuth()
+  useAuth()
   const [canvases, setCanvases] = useState<Canvas[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const token = session?.access_token || ''
+  const token = getToken() || ''
   const client = api(token)
 
   useEffect(() => {

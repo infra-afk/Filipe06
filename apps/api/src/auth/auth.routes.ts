@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express'
 import { registerSchema, loginSchema } from './auth.schemas'
-import { registerUser, loginUser } from './auth.service'
+import { registerUser, loginUser, listUsers, deactivateUser, reactivateUser } from './auth.service'
+import { authMiddleware, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
 router.post('/register', async (req: Request, res: Response) => {
   const result = registerSchema.safeParse(req.body)
   if (!result.success) {
-    return res.status(400).json({ error: result.error.errors[0].message })
+    return res.status(400).json({ error: result.error.issues[0].message })
   }
 
   try {
@@ -25,7 +26,7 @@ router.post('/register', async (req: Request, res: Response) => {
 router.post('/login', async (req: Request, res: Response) => {
   const result = loginSchema.safeParse(req.body)
   if (!result.success) {
-    return res.status(400).json({ error: result.error.errors[0].message })
+    return res.status(400).json({ error: result.error.issues[0].message })
   }
 
   try {
@@ -33,6 +34,34 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.json({ token, user })
   } catch (err: any) {
     return res.status(401).json({ error: err.message })
+  }
+})
+
+// ─── Gestão de usuários (requer autenticação) ─────────────────────────────────
+
+router.get('/users', authMiddleware as any, async (_req: AuthRequest, res: Response) => {
+  try {
+    res.json(await listUsers())
+  } catch (e: any) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+router.patch('/users/:id/deactivar', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  try {
+    await deactivateUser(req.params.id)
+    res.json({ ok: true })
+  } catch (e: any) {
+    res.status(400).json({ error: e.message })
+  }
+})
+
+router.patch('/users/:id/reativar', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  try {
+    await reactivateUser(req.params.id)
+    res.json({ ok: true })
+  } catch (e: any) {
+    res.status(400).json({ error: e.message })
   }
 })
 

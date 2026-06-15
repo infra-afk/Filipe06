@@ -4,6 +4,7 @@ import dotenv from 'dotenv'
 import canvasRoutes from './modules/canvas/canvas.routes'
 import itemsRoutes from './modules/canvas/items.routes'
 import authRoutes from './auth/auth.routes'
+import kanbanRoutes from './modules/kanban/kanban.routes'
 
 dotenv.config()
 
@@ -16,6 +17,7 @@ app.use(express.json())
 app.use('/auth', authRoutes)
 app.use('/api/canvases', canvasRoutes)
 app.use('/api/items', itemsRoutes)
+app.use('/api/kanban', kanbanRoutes)
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })

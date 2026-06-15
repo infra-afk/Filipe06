@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  getCards, getArquivados, saveCard as storeSaveCard, KanbanCard,
+  getCards, getArquivados, saveCard as storeSaveCard, loadKanbanFromServer, KanbanCard,
 } from '../store/kanbanStore'
 import {
   ChevronDown, ChevronUp, Printer, Search, X, Filter,
@@ -18,7 +18,8 @@ function fmt(d: string) {
 
 const COLUNAS: Record<string, string> = {
   entrada: 'Entrada', analise: 'Em Análise',
-  desenvolvimento: 'Em Desenvolvimento', revisao: 'Em Revisão', concluido: 'Concluído',
+  desenvolvimento: 'Em Desenvolvimento', revisao: 'Em Revisão',
+  concluido: 'Concluído', saida: 'Saída',
 }
 
 const BRIEFING_SECTIONS = [
@@ -439,6 +440,13 @@ function RegistroCard({
 export default function Formulario() {
   const navigate = useNavigate()
   const [cards, setCards] = useState<KanbanCard[]>(() => [...getCards(), ...getArquivados()])
+
+  // Sincroniza com o servidor para garantir que cards arquivados recentes apareçam
+  useEffect(() => {
+    loadKanbanFromServer()
+      .then(() => setCards([...getCards(), ...getArquivados()]))
+      .catch(() => {})
+  }, [])
   const [busca, setBusca]                 = useState('')
   const [filtroStatus, setFiltroStatus]   = useState<'todos' | 'ativo' | 'arquivado'>('todos')
   const [filtroResp, setFiltroResp]       = useState('')

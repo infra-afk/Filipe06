@@ -1,15 +1,16 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Plus, X, Calendar, AlertCircle, Clock, CheckCircle2,
   Inbox, Search, Code2, Eye, MoreHorizontal, Edit2, Trash2,
   ChevronRight, Layers,
   Zap, Flag, Star, PauseCircle, Lock,
   Filter, Archive, FileText, Target, BarChart2, ShoppingCart,
-  Receipt, RefreshCcw, Bell, Lightbulb, Bot,
+  Receipt, RefreshCcw, Bell, Lightbulb, Bot, LogOut,
 } from 'lucide-react'
 import {
   getCards, getArquivados, saveCard as storeSaveCard,
   arquivarCard as storeArquivarCard, deleteCard as storeDeleteCard,
+  loadKanbanFromServer,
   KanbanCard as StoreCard,
 } from '../store/kanbanStore'
 
@@ -39,7 +40,7 @@ interface KanbanColumn {
 const ICON_MAP: Record<string, React.ElementType> = {
   inbox: Inbox, search: Search, code: Code2, eye: Eye,
   check: CheckCircle2, zap: Zap, flag: Flag, star: Star,
-  pause: PauseCircle, layers: Layers,
+  pause: PauseCircle, layers: Layers, logout: LogOut,
 }
 
 const COLOR_PRESETS = [
@@ -75,7 +76,8 @@ const INIT_COLS: KanbanColumn[] = [
   { id: 'analise',        label: 'Em análise',          accent: '#2563eb', gradient: 'from-blue-600 to-blue-500',      iconKey: 'search',wip: 0, collapsed: false },
   { id: 'desenvolvimento',label: 'Em desenvolvimento',  accent: '#0369a1', gradient: 'from-sky-700 to-sky-600',        iconKey: 'code',  wip: 5, collapsed: false },
   { id: 'revisao',        label: 'Em revisão',          accent: '#f59e0b', gradient: 'from-amber-500 to-orange-500',   iconKey: 'eye',   wip: 3, collapsed: false },
-  { id: 'concluido',      label: 'Concluído',           accent: '#059669', gradient: 'from-emerald-600 to-teal-500',   iconKey: 'check', wip: 0, collapsed: false },
+  { id: 'concluido',      label: 'Concluído',           accent: '#059669', gradient: 'from-emerald-600 to-teal-500',   iconKey: 'check',  wip: 0, collapsed: false },
+  { id: 'saida',          label: 'Saída',               accent: '#7c3aed', gradient: 'from-violet-700 to-purple-600',   iconKey: 'logout', wip: 0, collapsed: false },
 ]
 
 function blankBriefing(): KanbanCard['briefing'] {
@@ -560,7 +562,7 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
             {onDelete && (
               <button onClick={onDelete} className="text-xs font-semibold text-red-500 hover:text-red-700">Excluir</button>
             )}
-            {onArquivar && draft.coluna === 'concluido' && (
+            {onArquivar && (draft.coluna === 'concluido' || draft.coluna === 'saida') && (
               <button onClick={onArquivar}
                 className="flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-800 border border-teal-200 bg-teal-50 hover:bg-teal-100 px-3 py-1.5 rounded-xl transition-all">
                 <Archive size={12} /> Arquivar no Relatório
@@ -583,23 +585,31 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
-function KCard({ card, accent, dragging, onDragStart, onDragEnd, onClick }: {
-  card: KanbanCard; accent: string; dragging: boolean
+function KCard({ card, accent, dragging, exiting, onDragStart, onDragEnd, onClick, onArchiveDirect }: {
+  card: KanbanCard; accent: string; dragging: boolean; exiting?: boolean
   onDragStart: () => void; onDragEnd: () => void; onClick: () => void
+  onArchiveDirect?: () => void
 }) {
   const days = daysLeft(card.prazo)
   const overdue = days !== null && days < 0
   const soon    = days !== null && days >= 0 && days <= 3
   const p = PRIORITY_CFG[card.prioridade]
+  const isSaida = card.coluna === 'saida'
 
   return (
     <div
-      draggable
+      draggable={!isSaida}
       onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; onDragStart() }}
       onDragEnd={onDragEnd}
-      onClick={onClick}
-      className={`bg-white rounded-xl border border-slate-200 p-3.5 cursor-grab active:cursor-grabbing select-none transition-all duration-200 ${
-        dragging ? 'opacity-30 scale-95 shadow-none' : 'shadow-sm hover:shadow-md hover:-translate-y-0.5'
+      onClick={!isSaida ? onClick : undefined}
+      className={`rounded-xl border p-3.5 select-none transition-all duration-500 ${
+        exiting
+          ? 'opacity-0 scale-75 -translate-y-3 blur-sm pointer-events-none'
+          : isSaida
+            ? 'bg-violet-50 border-violet-200 shadow-sm shadow-violet-100 cursor-default'
+            : dragging
+              ? 'bg-white border-slate-200 opacity-30 scale-95 shadow-none cursor-grab'
+              : 'bg-white border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 cursor-grab active:cursor-grabbing'
       }`}
     >
       {/* Nome + prioridade */}
@@ -648,6 +658,15 @@ function KCard({ card, accent, dragging, onDragStart, onDragEnd, onClick }: {
       {card.observacoes && (
         <p className="mt-1.5 text-xs text-slate-400 italic line-clamp-1">{card.observacoes}</p>
       )}
+
+      {isSaida && onArchiveDirect && (
+        <button
+          onClick={onArchiveDirect}
+          className="mt-3 w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 shadow-sm shadow-violet-200 transition-all active:scale-95"
+        >
+          <LogOut size={12} /> Confirmar saída
+        </button>
+      )}
     </div>
   )
 }
@@ -659,6 +678,7 @@ function KColumn({ col, cards, dragId, overCol, swimRow,
   onCardDragStart, onCardDragEnd,
   onCardClick, onAddCard,
   onEditCol, onDeleteCol,
+  exitingCards, onArchiveDirect,
 }: {
   col: KanbanColumn; cards: KanbanCard[]; dragId: string | null
   overCol: string | null; swimRow?: string
@@ -667,6 +687,7 @@ function KColumn({ col, cards, dragId, overCol, swimRow,
   onCardDragStart: (id: string) => void; onCardDragEnd: () => void
   onCardClick: (card: KanbanCard) => void
   onAddCard: () => void; onEditCol: () => void; onDeleteCol: () => void
+  exitingCards?: Set<string>; onArchiveDirect?: (id: string) => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -756,9 +777,11 @@ function KColumn({ col, cards, dragId, overCol, swimRow,
         {cards.map(card => (
           <KCard key={card.id} card={card} accent={col.accent}
             dragging={dragId === card.id}
+            exiting={exitingCards?.has(card.id)}
             onDragStart={() => onCardDragStart(card.id)}
             onDragEnd={onCardDragEnd}
             onClick={() => onCardClick(card)}
+            onArchiveDirect={onArchiveDirect ? () => onArchiveDirect(card.id) : undefined}
           />
         ))}
 
@@ -768,10 +791,20 @@ function KColumn({ col, cards, dragId, overCol, swimRow,
         )}
 
         {cards.length === 0 && !isOver && (
-          <div className="flex flex-col items-center justify-center py-8 text-slate-300 select-none">
-            <ColIcon size={20} />
-            <p className="text-xs mt-2 font-medium">Vazio</p>
-          </div>
+          col.id === 'saida' ? (
+            <div className="flex flex-col items-center justify-center py-10 select-none gap-2">
+              <div className="w-10 h-10 rounded-2xl bg-violet-100 flex items-center justify-center">
+                <LogOut size={18} className="text-violet-400" />
+              </div>
+              <p className="text-xs font-semibold text-violet-400">Arraste aqui para arquivar</p>
+              <p className="text-[10px] text-violet-300">Dados preservados no relatório</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-8 text-slate-300 select-none">
+              <ColIcon size={20} />
+              <p className="text-xs mt-2 font-medium">Vazio</p>
+            </div>
+          )
         )}
       </div>
 
@@ -1026,6 +1059,7 @@ const ETAPA_DATAS_MAP: Record<string, keyof KanbanCard> = {
   desenvolvimento: 'dataDesenvolvimento',
   revisao:         'dataRevisao',
   concluido:       'dataConcluido',
+  saida:           'dataArquivamento',
 }
 
 function ConfirmMoveModal({ card, fromCol, toCol, onConfirm, onCancel }: {
@@ -1116,6 +1150,18 @@ export default function Kanban() {
   const [arquivados, setArquivados] = useState<CardArquivado[]>(() => getArquivados())
   const [mostrarRelatorio, setMostrarRelatorio] = useState(false)
 
+  const [exitingCards, setExitingCards] = useState<Set<string>>(new Set())
+
+  // Carrega cards do servidor na primeira renderização
+  useEffect(() => {
+    loadKanbanFromServer()
+      .then(() => {
+        setCards(getCards())
+        setArquivados(getArquivados())
+      })
+      .catch(() => {})
+  }, [])
+
   // Confirmação de movimentação
   const [pendingMove, setPendingMove] = useState<{ cardId: string; toColId: string } | null>(null)
 
@@ -1166,6 +1212,19 @@ export default function Kanban() {
     const today = new Date().toISOString().slice(0, 10)
     const dateField = ETAPA_DATAS_MAP[toColId] as keyof KanbanCard | undefined
 
+    // Mover para 'saida': aparece brevemente na coluna, depois anima saída e arquiva
+    if (toColId === 'saida') {
+      setCards(p => p.map(c => {
+        if (c.id !== cardId) return c
+        const next: KanbanCard = { ...c, coluna: 'saida', dataArquivamento: today }
+        storeSaveCard(next)
+        return next
+      }))
+      setPendingMove(null)
+      setTimeout(() => arquivarComAnimacao(cardId), 300)
+      return
+    }
+
     setCards(p => {
       const updated = p.map(c => {
         if (c.id !== cardId) return c
@@ -1210,6 +1269,16 @@ export default function Kanban() {
     setCards(p => p.filter(c => c.id !== id))
     setArquivados(getArquivados())
     setCardModal(null)
+  }
+
+  function arquivarComAnimacao(id: string) {
+    setExitingCards(p => new Set([...p, id]))
+    setTimeout(() => {
+      storeArquivarCard(id)
+      setCards(p => p.filter(c => c.id !== id))
+      setArquivados(getArquivados())
+      setExitingCards(p => { const n = new Set(p); n.delete(id); return n })
+    }, 500)
   }
 
   // Columns CRUD
@@ -1395,6 +1464,8 @@ export default function Kanban() {
               onAddCard={() => setCardModal(blankCard(col.id))}
               onEditCol={() => setColModal({ id: col.id, label: col.label, accent: col.accent, gradient: col.gradient, iconKey: col.iconKey, wip: col.wip })}
               onDeleteCol={() => deleteColumn(col.id)}
+              exitingCards={exitingCards}
+              onArchiveDirect={col.id === 'saida' ? arquivarComAnimacao : undefined}
             />
           ))}
 

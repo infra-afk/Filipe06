@@ -37,7 +37,7 @@ export async function registerUser(email: string, password: string, full_name?: 
 
 export async function loginUser(email: string, password: string) {
   const { rows } = await pool.query(
-    'SELECT id, email, password_hash, full_name FROM app_auth.users WHERE email = $1',
+    'SELECT id, email, password_hash, full_name, ativo FROM app_auth.users WHERE email = $1',
     [email]
   )
 
@@ -46,6 +46,11 @@ export async function loginUser(email: string, password: string) {
   }
 
   const user = rows[0]
+
+  if (!user.ativo) {
+    throw new Error('Conta desativada. Entre em contato com o administrador.')
+  }
+
   const valid = await bcrypt.compare(password, user.password_hash)
 
   if (!valid) {
@@ -57,4 +62,28 @@ export async function loginUser(email: string, password: string) {
   } as jwt.SignOptions)
 
   return { token, user: { id: user.id, email: user.email, full_name: user.full_name } }
+}
+
+export async function listUsers() {
+  const { rows } = await pool.query(
+    `SELECT id, email, full_name, ativo, created_at
+     FROM app_auth.users
+     ORDER BY created_at`
+  )
+  return rows
+}
+
+export async function deactivateUser(userId: string) {
+  const { rowCount } = await pool.query(
+    `UPDATE app_auth.users SET ativo = false WHERE id = $1 AND ativo = true`,
+    [userId]
+  )
+  if (rowCount === 0) throw new Error('Usuário não encontrado ou já desativado')
+}
+
+export async function reactivateUser(userId: string) {
+  await pool.query(
+    `UPDATE app_auth.users SET ativo = true WHERE id = $1`,
+    [userId]
+  )
 }

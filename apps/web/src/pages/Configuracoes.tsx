@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Building2, User, Bell, Database, Shield, Palette, Users,
   Check, Eye, EyeOff, Plus, Trash2, Mail, Phone, Globe,
@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { getToken } from '../lib/auth'
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -203,13 +204,17 @@ function PermissoesModal({ usuario, onToggle, onClose }: {
 const TODOS_ACESSOS: ModuloKey[] = TODOS_MODULOS.map(m => m.key)
 const ACESSOS_VISUALIZADOR: ModuloKey[] = ['dashboard', 'indicadores', 'vendas']
 
+const API_URL = import.meta.env.VITE_API_URL || ''
+
+function authHeader(): Record<string, string> {
+  const token = getToken()
+  const h: Record<string, string> = {}
+  if (token) h['Authorization'] = `Bearer ${token}`
+  return h
+}
+
 function SecaoUsuarios() {
-  const [usuarios, setUsuarios] = useState<UsuarioLocal[]>([
-    { id: '1', nome: 'infra',        email: 'infra@chuasa.com',         papel: 'Admin',        ativo: true,  permissoes: TODOS_ACESSOS },
-    { id: '2', nome: 'Filipe',       email: 'filipe@chuasa.com',        papel: 'Admin',        ativo: true,  permissoes: TODOS_ACESSOS },
-    { id: '3', nome: 'Weslei Alves', email: 'weslei.alves@chuasa.com',  papel: 'Analista',     ativo: true,  permissoes: ['dashboard','canvas','kanban','indicadores','vendas','despesas','dre','alertas'] },
-    { id: '4', nome: 'Ana Lima',     email: 'ana.lima@chuasa.com',      papel: 'Visualizador', ativo: false, permissoes: ACESSOS_VISUALIZADOR },
-  ])
+  const [usuarios, setUsuarios] = useState<UsuarioLocal[]>([])
   const [permModal, setPermModal] = useState<UsuarioLocal | null>(null)
   const [adicionando, setAdicionando] = useState(false)
   const [novoNome,  setNovoNome]  = useState('')
@@ -218,6 +223,23 @@ function SecaoUsuarios() {
   const [novasPerms, setNovasPerms] = useState<ModuloKey[]>(ACESSOS_VISUALIZADOR)
 
   const PAPEIS: UsuarioLocal['papel'][] = ['Admin', 'Analista', 'Visualizador']
+
+  // Carrega usuários reais do banco
+  useEffect(() => {
+    fetch(`${API_URL}/auth/users`, { headers: authHeader() })
+      .then(r => r.ok ? r.json() : [])
+      .then((rows: Array<{ id: string; email: string; full_name: string; ativo: boolean }>) => {
+        setUsuarios(rows.map(r => ({
+          id: r.id,
+          nome: r.full_name || r.email.split('@')[0],
+          email: r.email,
+          papel: 'Analista' as const,
+          ativo: r.ativo,
+          permissoes: TODOS_ACESSOS,
+        })))
+      })
+      .catch(() => {})
+  }, [])
 
   function togglePermModal(key: ModuloKey) {
     if (!permModal) return
@@ -232,14 +254,26 @@ function SecaoUsuarios() {
   }
 
   function toggleAtivo(id: string) {
-    setUsuarios(p => p.map(u => u.id === id ? { ...u, ativo: !u.ativo } : u))
+    const u = usuarios.find(x => x.id === id)
+    if (!u) return
+    const rota = u.ativo ? 'deactivar' : 'reativar'
+    fetch(`${API_URL}/auth/users/${id}/${rota}`, {
+      method: 'PATCH',
+      headers: authHeader(),
+    }).catch(() => {})
+    setUsuarios(p => p.map(x => x.id === id ? { ...x, ativo: !x.ativo } : x))
   }
 
   function alterarPapel(id: string, papel: UsuarioLocal['papel']) {
     setUsuarios(p => p.map(u => u.id === id ? { ...u, papel } : u))
   }
 
+  // Soft delete: desativa no banco (dados preservados), remove da lista local
   function remover(id: string) {
+    fetch(`${API_URL}/auth/users/${id}/deactivar`, {
+      method: 'PATCH',
+      headers: authHeader(),
+    }).catch(() => {})
     setUsuarios(p => p.filter(u => u.id !== id))
   }
 
@@ -765,7 +799,9 @@ function SecaoEmpresa() {
 
 function SecaoPerfil() {
   const { user } = useAuth()
-  const [showPass, setShowPass] = useState(false)
+  const [showPass,        setShowPass]        = useState(false)
+  const [showNewPass,     setShowNewPass]     = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
   const [saved, setSaved] = useState(false)
   const nome = user?.full_name || user?.email?.split('@')[0] || 'Usuário'
   const initials = nome.slice(0, 2).toUpperCase()
@@ -802,8 +838,22 @@ function SecaoPerfil() {
               </button>
             </div>
           </Campo>
-          <Campo label="Nova senha"><Input type="password" placeholder="••••••••" /></Campo>
-          <Campo label="Confirmar nova senha"><Input type="password" placeholder="••••••••" /></Campo>
+          <Campo label="Nova senha">
+            <div className="relative">
+              <Input type={showNewPass ? 'text' : 'password'} placeholder="••••••••" />
+              <button onClick={() => setShowNewPass(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </Campo>
+          <Campo label="Confirmar nova senha">
+            <div className="relative">
+              <Input type={showConfirmPass ? 'text' : 'password'} placeholder="••••••••" />
+              <button onClick={() => setShowConfirmPass(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </Campo>
         </div>
       </SectionCard>
       <div className="flex justify-end gap-3">
