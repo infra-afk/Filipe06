@@ -540,17 +540,6 @@ export default function CanvasOperacional() {
       {/* ── Painel direito ── */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
 
-        {/* Banner logo */}
-        {bannerLogo && (
-          <div className="rounded-2xl overflow-hidden flex-shrink-0 flex items-center justify-center bg-slate-900"
-            style={{ height: '80px' }}>
-            <img
-              src={bannerLogo}
-              alt="Banner"
-              style={{ height: '80px', maxWidth: '100%', objectFit: 'contain', objectPosition: 'center' }}
-            />
-          </div>
-        )}
         <div className="rounded-2xl overflow-hidden relative flex-shrink-0"
           style={{ background: `linear-gradient(135deg, ${step.from}, ${step.to})` }}>
           <WaveDecor />

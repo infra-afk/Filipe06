@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { registerSchema, loginSchema } from './auth.schemas'
-import { registerUser, loginUser } from './auth.service'
+import { registerUser, loginUser, changePassword } from './auth.service'
+import { authMiddleware, AuthRequest } from '../middleware/auth'
 
 const router = Router()
 
@@ -33,6 +34,22 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.json({ token, user })
   } catch (err: any) {
     return res.status(401).json({ error: err.message })
+  }
+})
+
+router.put('/change-password', authMiddleware, async (req: AuthRequest, res: Response) => {
+  const { currentPassword, newPassword } = req.body
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Campos obrigatórios' })
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: 'Nova senha deve ter pelo menos 6 caracteres' })
+  }
+  try {
+    await changePassword(req.userId!, currentPassword, newPassword)
+    return res.json({ ok: true })
+  } catch (err: any) {
+    return res.status(400).json({ error: err.message })
   }
 })
 

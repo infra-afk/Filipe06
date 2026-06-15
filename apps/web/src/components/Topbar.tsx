@@ -30,6 +30,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+  const [unread, setUnread] = useState(() => {
+    return parseInt(localStorage.getItem('chua_notif_unread') || '2', 10)
+  })
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const pageName = pageNames[location.pathname] ||
@@ -38,6 +41,18 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'Usuário'
   const email = user?.email || ''
   const initials = displayName.slice(0, 2).toUpperCase()
+
+  useEffect(() => {
+    function sync() {
+      setUnread(parseInt(localStorage.getItem('chua_notif_unread') || '0', 10))
+    }
+    window.addEventListener('chua-notif-change', sync)
+    window.addEventListener('storage', sync)
+    return () => {
+      window.removeEventListener('chua-notif-change', sync)
+      window.removeEventListener('storage', sync)
+    }
+  }, [])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -66,10 +81,15 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         {/* Sino */}
         <button
           aria-label="Notificações"
+          onClick={() => navigate('/configuracoes')}
           className="relative p-2 rounded-xl hover:bg-slate-100 transition-colors"
         >
           <Bell size={18} className="text-slate-500" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+          {unread > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-bold text-white px-1">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          )}
         </button>
 
         {/* Avatar + dropdown */}

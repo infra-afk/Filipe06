@@ -32,6 +32,7 @@
   html.dark .text-slate-400 { color: #475569 !important; }
   html.dark .text-slate-900 { color: #f1f5f9 !important; }
   html.dark .shadow-sm { box-shadow: 0 1px 4px rgba(0,0,0,0.4) !important; }
+  html.dark .shadow-xl { box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important; }
   html.dark .stat-card { background-color: #1e293b !important; border-color: #334155 !important; }
   html.dark .chart-card { background-color: #1e293b !important; border-color: #334155 !important; }
   html.dark .table-container { background-color: #1e293b !important; border-color: #334155 !important; }
@@ -41,12 +42,37 @@
   html.dark .sidebar-link:hover { background-color: #334155 !important; color: #e2e8f0 !important; }
   html.dark .sidebar-link.active { background-color: rgba(37,99,235,0.15) !important; }
   html.dark aside { background-color: #1e293b !important; border-color: #334155 !important; }
+  /* Topbar */
+  html.dark header { background-color: rgba(15,23,42,0.95) !important; border-color: #334155 !important; backdrop-filter: blur(8px); }
+  /* Modais e dropdowns */
+  html.dark .rounded-2xl:not([class*="bg-blue"]):not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-amber"]):not([class*="bg-teal"]):not([class*="gradient"]) {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+  html.dark .rounded-xl:not([class*="bg-blue"]):not([class*="bg-red"]):not([class*="bg-green"]):not([class*="bg-amber"]):not([class*="bg-teal"]):not([class*="gradient"]):not(button):not(a) {
+    background-color: #1e293b;
+    border-color: #334155;
+  }
+  /* Kanban cards */
+  html.dark .kanban-card { background-color: #1e293b !important; border-color: #334155 !important; }
+  html.dark .kanban-col  { background-color: #0f172a !important; border-color: #334155 !important; }
+  /* Hover states */
+  html.dark .hover\:bg-slate-50:hover { background-color: #334155 !important; }
+  html.dark .hover\:bg-slate-100:hover { background-color: #334155 !important; }
+  html.dark .hover\:border-slate-200:hover { border-color: #475569 !important; }
+  /* Layout main */
+  html.dark main { background-color: #0f172a !important; }
+  html.dark .flex.h-screen { background-color: #0f172a !important; }
   html.dark input, html.dark select, html.dark textarea {
     background-color: #0f172a !important;
     color: #e2e8f0 !important;
     border-color: #475569 !important;
   }
   html.dark input::placeholder, html.dark textarea::placeholder { color: #475569 !important; }
+  /* Dividers */
+  html.dark .divide-slate-50 > * + * { border-color: #334155 !important; }
+  html.dark .border-t { border-color: #334155 !important; }
+  html.dark .border-b { border-color: #334155 !important; }
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
