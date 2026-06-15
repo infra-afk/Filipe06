@@ -607,7 +607,7 @@ export default function Formulario() {
           {filtrados.length === 0 ? (
             <p className="text-center py-12 text-sm text-slate-400">Nenhum registro para os filtros aplicados.</p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 print:space-y-0">
               {filtrados.map((c, i) => (
                 <RegistroCard
                   key={c.id}
