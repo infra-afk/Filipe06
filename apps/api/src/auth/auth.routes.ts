@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { registerSchema, loginSchema } from './auth.schemas'
-import { registerUser, loginUser, listUsers, deactivateUser, reactivateUser, changePassword } from './auth.service'
+import { registerUser, loginUser, listUsers, deactivateUser, reactivateUser, changePassword, updateUserRole } from './auth.service'
 import { authMiddleware, AuthRequest } from '../middleware/auth'
 
 const router = Router()
@@ -59,6 +59,19 @@ router.patch('/users/:id/deactivar', authMiddleware as any, async (req: AuthRequ
 router.patch('/users/:id/reativar', authMiddleware as any, async (req: AuthRequest, res: Response) => {
   try {
     await reactivateUser(req.params.id)
+    res.json({ ok: true })
+  } catch (e: any) {
+    res.status(400).json({ error: e.message })
+  }
+})
+
+router.patch('/users/:id/role', authMiddleware as any, async (req: AuthRequest, res: Response) => {
+  const { role } = req.body
+  if (!role || !['admin', 'analista', 'visualizador', 'solicitante'].includes(role)) {
+    return res.status(400).json({ error: 'Role inválido' })
+  }
+  try {
+    await updateUserRole(req.params.id, role)
     res.json({ ok: true })
   } catch (e: any) {
     res.status(400).json({ error: e.message })

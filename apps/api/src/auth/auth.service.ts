@@ -49,7 +49,7 @@ export async function changePassword(userId: string, currentPassword: string, ne
 
 export async function loginUser(email: string, password: string) {
   const { rows } = await pool.query(
-    'SELECT id, email, password_hash, full_name, ativo FROM app_auth.users WHERE email = $1',
+    'SELECT id, email, password_hash, full_name, ativo, role FROM app_auth.users WHERE email = $1',
     [email]
   )
 
@@ -69,20 +69,28 @@ export async function loginUser(email: string, password: string) {
     throw new Error('Email ou senha inválidos')
   }
 
-  const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, {
+  const token = jwt.sign({ sub: user.id, email: user.email, role: user.role }, JWT_SECRET, {
     expiresIn: JWT_EXPIRES_IN,
   } as jwt.SignOptions)
 
-  return { token, user: { id: user.id, email: user.email, full_name: user.full_name } }
+  return { token, user: { id: user.id, email: user.email, full_name: user.full_name, role: user.role } }
 }
 
 export async function listUsers() {
   const { rows } = await pool.query(
-    `SELECT id, email, full_name, ativo, created_at
+    `SELECT id, email, full_name, ativo, role, created_at
      FROM app_auth.users
      ORDER BY created_at`
   )
   return rows
+}
+
+export async function updateUserRole(userId: string, newRole: 'admin' | 'analista' | 'visualizador' | 'solicitante') {
+  const { rowCount } = await pool.query(
+    `UPDATE app_auth.users SET role = $1 WHERE id = $2`,
+    [newRole, userId]
+  )
+  if (rowCount === 0) throw new Error('Usuário não encontrado')
 }
 
 export async function deactivateUser(userId: string) {

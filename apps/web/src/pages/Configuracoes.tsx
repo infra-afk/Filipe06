@@ -39,7 +39,7 @@ interface UsuarioLocal {
   id: string
   nome: string
   email: string
-  papel: 'Admin' | 'Analista' | 'Visualizador'
+  papel: 'Admin' | 'Analista' | 'Visualizador' | 'Solicitante'
   ativo: boolean
   permissoes: ModuloKey[]
   senha?: string
@@ -112,6 +112,7 @@ const PAPEL_COR: Record<UsuarioLocal['papel'], string> = {
   Admin:        'bg-red-100 text-red-700',
   Analista:     'bg-blue-100 text-blue-700',
   Visualizador: 'bg-slate-100 text-slate-600',
+  Solicitante:  'bg-green-100 text-green-700',
 }
 
 const NOTIF_TIPO: Record<Notificacao['tipo'], { bg: string; icon: any; cor: string }> = {
@@ -206,8 +207,9 @@ function PermissoesModal({ usuario, onToggle, onClose }: {
 
 const TODOS_ACESSOS: ModuloKey[] = TODOS_MODULOS.map(m => m.key)
 const ACESSOS_VISUALIZADOR: ModuloKey[] = ['dashboard', 'indicadores', 'vendas']
-const ACESSOS_ANALISTA: ModuloKey[] = ['dashboard','canvas','kanban','indicadores','vendas','despesas','dre','alertas']
-const PAPEIS: UsuarioLocal['papel'][] = ['Admin', 'Analista', 'Visualizador']
+const ACESSOS_SOLICITANTE: ModuloKey[] = ['dashboard','canvas','kanban','indicadores','vendas','despesas','dre','alertas','decisoes']
+const ACESSOS_ANALISTA: ModuloKey[] = ['dashboard','canvas','kanban','indicadores','vendas','despesas','dre','alertas','decisoes']
+const PAPEIS: UsuarioLocal['papel'][] = ['Admin', 'Analista', 'Visualizador', 'Solicitante']
 
 function forcaSenha(s: string): { label: string; cor: string; bg: string; pct: number } {
   if (!s) return { label: '', cor: '', bg: '', pct: 0 }
@@ -219,8 +221,9 @@ function forcaSenha(s: string): { label: string; cor: string; bg: string; pct: n
 }
 
 function permsParaPapel(p: UsuarioLocal['papel']): ModuloKey[] {
-  if (p === 'Admin')    return TODOS_ACESSOS
-  if (p === 'Analista') return ACESSOS_ANALISTA
+  if (p === 'Admin')        return TODOS_ACESSOS
+  if (p === 'Analista')     return ACESSOS_ANALISTA
+  if (p === 'Solicitante')  return ACESSOS_SOLICITANTE
   return ACESSOS_VISUALIZADOR
 }
 
@@ -405,8 +408,10 @@ function FormUsuario({
             ))}
           </div>
           <p className="text-[11px] text-slate-400 mt-1.5">
-            {papel === 'Admin'    && 'Acesso completo a todos os módulos e configurações.'}
-            {papel === 'Analista' && 'Pode criar canvas, editar dados e gerenciar indicadores.'}
+            {papel === 'Admin'        && 'Acesso completo a todos os módulos e configurações.'}
+            {papel === 'Analista'     && 'Pode criar canvas, editar dados e gerenciar indicadores.'}
+            {papel === 'Solicitante'  && 'Visualiza dashboards e kanban. Cria canvas para solicitar novos dashboards.'}
+            {papel === 'Visualizador' && 'Visualiza dashboards e indicadores em modo somente leitura.'}
             {papel === 'Visualizador' && 'Somente leitura — visualiza dashboards sem edição.'}
           </p>
         </Campo>

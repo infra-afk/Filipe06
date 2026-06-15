@@ -5,6 +5,14 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import { Loader2 } from 'lucide-react'
 
+function ProtectedRoute({ element, requiredRole }: { element: React.ReactNode; requiredRole?: string }) {
+  const { user } = useAuth()
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return element
+}
+
 // Páginas carregadas sob demanda (code-splitting) — reduz o bundle inicial
 const Dashboard         = lazy(() => import('./pages/Dashboard'))
 const Objetivos         = lazy(() => import('./pages/Objetivos'))
@@ -64,7 +72,7 @@ function AppRoutes() {
             <Route path="/decisoes" element={<Decisoes />} />
             <Route path="/agentes" element={<Agentes />} />
             <Route path="/automacoes" element={<Automacoes />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
+            <Route path="/configuracoes" element={<ProtectedRoute element={<Configuracoes />} requiredRole="admin" />} />
             <Route path="/canvases" element={<CanvasOperacional />} />
             <Route path="/kanban"      element={<KanbanPage />} />
             <Route path="/formulario"  element={<Formulario />} />
