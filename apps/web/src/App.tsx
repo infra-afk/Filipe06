@@ -8,7 +8,7 @@ import { Loader2 } from 'lucide-react'
 function ProtectedRoute({ element, requiredRole }: { element: React.ReactNode; requiredRole?: string }) {
   const { user } = useAuth()
   if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/dashboard" replace />
+    return <Navigate to="/canvases" replace />
   }
   return element
 }
@@ -60,7 +60,7 @@ function AppRoutes() {
       <Layout>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/canvases" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/objetivos" element={<Objetivos />} />
             <Route path="/indicadores" element={<Indicadores />} />
@@ -77,7 +77,7 @@ function AppRoutes() {
             <Route path="/kanban"      element={<KanbanPage />} />
             <Route path="/formulario"  element={<Formulario />} />
             <Route path="/canvas/:canvasId" element={<CanvasPage />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/canvases" replace />} />
           </Routes>
         </Suspense>
       </Layout>
