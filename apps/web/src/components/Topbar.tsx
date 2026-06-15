@@ -4,18 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 const pageNames: Record<string, string> = {
-  '/dashboard':     'Dashboard',
   '/canvases':      'Canvas Operacional',
-  '/objetivos':     'Objetivos',
-  '/indicadores':   'Indicadores',
-  '/vendas':        'Vendas',
-  '/despesas':      'Despesas',
-  '/devolucoes':    'Devoluções',
-  '/dre':           'DRE',
-  '/alertas':       'Alertas',
-  '/decisoes':      'Decisões',
-  '/agentes':       'Agentes IA',
-  '/automacoes':    'Automações',
   '/configuracoes': 'Configurações',
   '/kanban':        'Kanban',
   '/formulario':    'Formulário',
@@ -36,7 +25,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const pageName = pageNames[location.pathname] ||
-    (location.pathname.startsWith('/canvas/') ? 'Canvas' : 'Dashboard')
+    (location.pathname.startsWith('/canvas/') ? 'Canvas' : 'Canvas Operacional')
 
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'Usuário'
   const email = user?.email || ''
