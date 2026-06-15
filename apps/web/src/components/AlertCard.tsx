@@ -1,4 +1,4 @@
-import { AlertTriangle, AlertCircle, Info, CheckCircle } from 'lucide-react'
+import { AlertTriangle, AlertCircle, Info } from 'lucide-react'
 
 type Severidade = 'baixo' | 'medio' | 'alto' | 'critico'
 

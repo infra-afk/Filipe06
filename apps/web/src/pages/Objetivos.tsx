@@ -1,4 +1,4 @@
-import { Target, TrendingUp, TrendingDown } from 'lucide-react'
+import { Target } from 'lucide-react'
 import { objetivos } from '../data/mockData'
 
 const fmt = (v: number, unidade: string) => {

@@ -562,8 +562,6 @@ function SecaoUsuarios() {
     setEditandoId(null)
   }
 
-  const usuarioEditando = editandoId ? usuarios.find(u => u.id === editandoId) : undefined
-
   return (
     <>
       <div className="space-y-4">

@@ -6,7 +6,7 @@ import CanvasBoard from '../components/CanvasBoard'
 export default function CanvasPage() {
   const { canvasId } = useParams<{ canvasId: string }>()
   const navigate = useNavigate()
-  const { canvas, loading, saving, error, addItem, editItem, removeItem, reorderInSection } = useCanvas(canvasId!)
+  const { canvas, loading, saving, error, addItem, removeItem } = useCanvas(canvasId!)
 
   if (loading) {
     return (

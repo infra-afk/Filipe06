@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import {
   Plus, X, Calendar, AlertCircle, Clock, CheckCircle2,
   Inbox, Search, Code2, Eye, MoreHorizontal, Edit2, Trash2,
-  ChevronRight, Layers,
+  Layers,
   Zap, Flag, Star, PauseCircle, Lock,
   Filter, Archive, FileText, Target, BarChart2, ShoppingCart,
   Receipt, RefreshCcw, Bell, Lightbulb, Bot, LogOut, UserCheck,
@@ -397,10 +397,6 @@ function CardModal({ draft, columns, onSave, onClose, onDelete, onArquivar }: {
   const [form, setForm] = useState(draft)
   const [activeTab, setActiveTab] = useState<'detalhes' | 'briefing'>('detalhes')
   const set = (f: string, v: string) => setForm(p => ({ ...p, [f]: v }))
-
-  function removeTag(t: string) {
-    setForm(p => ({ ...p, tags: p.tags.filter(x => x !== t) }))
-  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"

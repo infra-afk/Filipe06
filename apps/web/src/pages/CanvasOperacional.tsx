@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { saveCard, getCards, KanbanCard } from '../store/kanbanStore'
+import { saveCard, getCards } from '../store/kanbanStore'
 import {
   Target, BarChart2, ShoppingCart, Receipt, RefreshCcw,
   FileText, Bell, Lightbulb, Bot, ChevronRight, ChevronLeft,
@@ -149,107 +149,6 @@ function WaveDecor() {
   )
 }
 
-// ─── Plano Final ──────────────────────────────────────────────────────────────
-
-function PlanoFinal({ state, onVoltar }: { state: CanvasState; titulo: string; onVoltar: () => void }) {
-  const bannerLogo = localStorage.getItem('chua_banner_logo') || ''
-  const secoes = STEPS.map(s => ({
-    ...s,
-    itens: [...(state[s.key] as string[]), ...(state.custom[s.key] || [])],
-    extras: Object.entries(state.extras)
-      .filter(([k]) => k.startsWith(s.key + '_'))
-      .flatMap(([, v]) => v),
-    nota: state.notas[s.key],
-  })).filter(s => s.itens.length > 0 || s.extras.length > 0)
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      {bannerLogo && (
-        <div className="rounded-2xl overflow-hidden mb-4 flex items-center justify-center bg-slate-900"
-          style={{ minHeight: '100px' }}>
-          <img
-            src={bannerLogo}
-            alt="Banner"
-            style={{ maxHeight: '100px', width: '100%', objectFit: 'contain', objectPosition: 'center' }}
-          />
-        </div>
-      )}
-      <div className="rounded-2xl overflow-hidden mb-6" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
-        <div className="relative px-8 py-8">
-          <WaveDecor />
-          <div className="relative z-10 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center">
-              <FileOutput size={26} className="text-white" />
-            </div>
-            <div>
-              <p className="text-white/70 text-sm font-semibold uppercase tracking-widest">Canvas Completo</p>
-              <h2 className="text-white text-3xl font-black mt-0.5">{state.titulo || 'Briefing Operacional'}</h2>
-              <p className="text-white/80 text-sm mt-1">{secoes.length} seções preenchidas · pronto para execução</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Conteúdo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-        {secoes.map(s => {
-          const Icon = s.icon
-          return (
-            <div key={s.key} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-100"
-                style={{ background: s.from + '12' }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: s.from }}>
-                  <Icon size={14} className="text-white" />
-                </div>
-                <span className="text-sm font-bold text-slate-700">{s.label}</span>
-              </div>
-              <div className="p-4">
-                <div className="flex flex-wrap gap-1.5">
-                  {s.itens.map(item => (
-                    <span key={item} className="text-xs px-2.5 py-1 rounded-full font-medium text-white"
-                      style={{ background: s.from }}>
-                      {item}
-                    </span>
-                  ))}
-                  {s.extras.map((e, i) => (
-                    <span key={i} className="text-xs px-2.5 py-1 rounded-full font-medium border border-slate-200 text-slate-600 bg-slate-50">
-                      {e}
-                    </span>
-                  ))}
-                </div>
-                {s.nota && <p className="text-xs text-slate-400 mt-2 italic border-t border-slate-50 pt-2">{s.nota}</p>}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Próximos passos */}
-      <div className="mt-6 rounded-2xl p-6 text-white" style={{ background: 'linear-gradient(135deg,#1d4ed8,#0f766e)' }}>
-        <h3 className="font-bold text-base mb-3 flex items-center gap-2">
-          <ChevronRight size={16} /> Próximos Passos
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {['Conectar as fontes de dados selecionadas','Configurar indicadores no banco de dados','Definir metas para cada indicador','Ativar os alertas automáticos','Configurar os agentes de IA','Programar as automações','Acessar o Dashboard com dados reais'].map((p, i) => (
-            <div key={p} className="flex items-center gap-2 text-sm text-blue-100">
-              <span className="bg-white/20 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
-              {p}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex justify-center mt-6">
-        <button onClick={onVoltar}
-          className="flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm">
-          <X size={14} /> Editar Canvas
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ─── Busca de cards existentes no Kanban ─────────────────────────────────────
 
 const COLUNA_CFG: Record<string, { label: string; color: string }> = {
@@ -372,18 +271,6 @@ export default function CanvasOperacional() {
   const [stepIdx, setStepIdx] = useState(0)
   const [state, setState] = useState<CanvasState>(initState)
   const [customInput, setCustomInput] = useState('')
-  const [bannerLogo, setBannerLogo] = useState<string>(
-    () => localStorage.getItem('chua_banner_logo') || ''
-  )
-
-  useEffect(() => {
-    function onLogoChange() {
-      setBannerLogo(localStorage.getItem('chua_banner_logo') || '')
-    }
-    window.addEventListener('chua-logo-change', onLogoChange)
-    return () => window.removeEventListener('chua-logo-change', onLogoChange)
-  }, [])
-
   const step = STEPS[stepIdx]
   const Icon = step.icon
   const total = STEPS.length
@@ -424,8 +311,6 @@ export default function CanvasOperacional() {
   function removeCustom(val: string) {
     setState(p => ({ ...p, custom: { ...p.custom, [step.key]: (p.custom[step.key] || []).filter(v => v !== val) } }))
   }
-
-  const selectedItems = [...(state[step.key] as string[]), ...(state.custom[step.key] || [])]
 
   function gerarBriefingEIrParaKanban() {
     const pick = (key: StepKey) => [

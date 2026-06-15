@@ -2,11 +2,11 @@ import { Router, Response } from 'express'
 import { authMiddleware, AuthRequest } from '../../middleware/auth'
 import {
   listCanvases, getCanvas, createCanvas, updateCanvas, deleteCanvas,
-  createItem, updateItem, deleteItem, reorderItems,
+  createItem, reorderItems,
 } from './canvas.repository'
 import {
   createCanvasSchema, updateCanvasSchema,
-  createItemSchema, updateItemSchema, reorderItemsSchema,
+  createItemSchema, reorderItemsSchema,
 } from './canvas.schemas'
 
 const router = Router()

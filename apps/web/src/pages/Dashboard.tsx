@@ -1,11 +1,11 @@
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend
 } from 'recharts'
 import {
   DollarSign, TrendingUp, TrendingDown, ShoppingCart,
-  RefreshCcw, Target, Users, BarChart2
+  RefreshCcw, Target, BarChart2
 } from 'lucide-react'
 import StatCard from '../components/StatCard'
 import ChartCard from '../components/ChartCard'
