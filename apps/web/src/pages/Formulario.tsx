@@ -122,7 +122,7 @@ function ResumoExecutivo({ card, onSave }: { card: KanbanCard; onSave: (resumo: 
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="no-print flex items-center gap-2">
           {!editando && (
             <>
               <button
@@ -236,7 +236,8 @@ function RegistroCard({
 
   return (
     <div
-      className="bg-white rounded-2xl overflow-hidden transition-shadow"
+      id={`registro-${card.id}`}
+      className="registro-card bg-white rounded-2xl overflow-hidden transition-shadow"
       style={{ boxShadow: open ? '0 4px 24px 0 rgba(15,23,42,0.08)' : '0 1px 4px 0 rgba(15,23,42,0.06)', border: '1px solid #e8ecf0' }}
     >
       {/* ── Cabeçalho do card ── */}
@@ -302,7 +303,7 @@ function RegistroCard({
           </div>
           <button
             onClick={() => setAberto(v => !v)}
-            className="flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
+            className="no-print flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all"
           >
             {open ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
             {open ? 'Fechar' : 'Abrir'}
@@ -424,8 +425,15 @@ function RegistroCard({
           {/* Rodapé do registro */}
           <div className="px-8 py-3 bg-slate-50/60 flex items-center justify-between">
             <span className="text-[10px] text-slate-400 font-mono">ID: {card.id}</span>
-            <button onClick={() => window.print()}
-              className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-colors">
+            <button
+              onClick={e => {
+                const alvo = (e.currentTarget as HTMLElement).closest('.registro-card')
+                document.querySelectorAll('.registro-card.print-target').forEach(el => el.classList.remove('print-target'))
+                alvo?.classList.add('print-target')
+                document.body.classList.add('printing-single')
+                window.print()
+              }}
+              className="no-print flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-colors">
               <Printer size={11} /> Imprimir este registro
             </button>
           </div>
@@ -446,6 +454,17 @@ export default function Formulario() {
     loadKanbanFromServer()
       .then(() => setCards([...getCards(), ...getArquivados()]))
       .catch(() => {})
+  }, [])
+
+  // Limpeza após impressão: remove o modo "imprimir só este registro"
+  useEffect(() => {
+    function aposImprimir() {
+      document.body.classList.remove('printing-single')
+      document.querySelectorAll('.registro-card.print-target')
+        .forEach(el => el.classList.remove('print-target'))
+    }
+    window.addEventListener('afterprint', aposImprimir)
+    return () => window.removeEventListener('afterprint', aposImprimir)
   }, [])
   const [busca, setBusca]                 = useState('')
   const [filtroStatus, setFiltroStatus]   = useState<'todos' | 'ativo' | 'arquivado'>('todos')
@@ -510,8 +529,8 @@ export default function Formulario() {
               ))}
             </div>
             <button
-              onClick={() => window.print()}
-              className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-400 transition-all"
+              onClick={() => { setExpandirTodos(true); setTimeout(() => window.print(), 200) }}
+              className="no-print inline-flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-400 transition-all"
             >
               <Printer size={13} /> Exportar / Imprimir
             </button>
@@ -539,7 +558,7 @@ export default function Formulario() {
       {cards.length > 0 && (
         <>
           {/* ── Barra de filtros ── */}
-          <div className="flex flex-wrap gap-3 items-center mb-6 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <div className="no-print flex flex-wrap gap-3 items-center mb-6 p-4 bg-white rounded-2xl border border-slate-200 shadow-sm">
             <Filter size={13} className="text-slate-400 flex-shrink-0" />
 
             <div className="flex items-center gap-2 flex-1 min-w-[180px] border border-slate-200 rounded-xl px-3 py-2 bg-slate-50">

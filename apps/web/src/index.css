@@ -148,3 +148,33 @@
     box-shadow: 0 4px 16px rgba(15,23,42,.05), 0 1px 4px rgba(15,23,42,.04);
   }
 }
+
+/* ── Impressão ─────────────────────────────────────────────────────────────── */
+@media print {
+  /* Elementos de interface que não devem aparecer no papel */
+  .no-print { display: none !important; }
+
+  /* Libera a altura/rolagem travadas pelo layout (senão só imprime 1 página) */
+  html, body, #root { height: auto !important; overflow: visible !important; background: #fff !important; }
+  .h-screen { height: auto !important; }
+  .overflow-hidden, .overflow-y-auto { overflow: visible !important; }
+  main { padding: 0 !important; overflow: visible !important; height: auto !important; }
+
+  /* Cores sólidas e sem sombras para impressão limpa */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+
+  /* Não cortar um registro nem o rodapé de assinaturas no meio da página */
+  .registro-card,
+  .print-footer { break-inside: avoid; page-break-inside: avoid; }
+
+  /* Modo "imprimir apenas este registro" */
+  body.printing-single .registro-card { display: none !important; }
+  body.printing-single .registro-card.print-target { display: block !important; }
+
+  /* Margens da folha */
+  @page { margin: 1.5cm; }
+}
