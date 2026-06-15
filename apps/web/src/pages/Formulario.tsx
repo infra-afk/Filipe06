@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  getCards, getArquivados, saveCard as storeSaveCard, loadKanbanFromServer, KanbanCard,
+  getCards, getArquivados, saveCard as storeSaveCard, deleteCard as storeDeleteCard, loadKanbanFromServer, KanbanCard,
 } from '../store/kanbanStore'
 import {
   ChevronDown, ChevronUp, Printer, Search, X, Filter,
-  Sparkles, FileText, CheckSquare, Clock, Edit3, Check,
+  Sparkles, FileText, CheckSquare, Clock, Edit3, Check, Trash2,
 } from 'lucide-react'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -195,12 +195,13 @@ function ResumoExecutivo({ card, onSave }: { card: KanbanCard; onSave: (resumo: 
 // ─── Card de Registro (documento formal + bonito) ─────────────────────────────
 
 function RegistroCard({
-  card, index, forceOpen, onCardUpdate,
+  card, index, forceOpen, onCardUpdate, onDelete,
 }: {
   card: KanbanCard
   index: number
   forceOpen: boolean
   onCardUpdate: (card: KanbanCard) => void
+  onDelete: (id: string) => void
 }) {
   const [aberto, setAberto] = useState(false)
   const open = forceOpen || aberto
@@ -425,17 +426,24 @@ function RegistroCard({
           {/* Rodapé do registro */}
           <div className="px-8 py-3 bg-slate-50/60 flex items-center justify-between">
             <span className="text-[10px] text-slate-400 font-mono">ID: {card.id}</span>
-            <button
-              onClick={e => {
-                const alvo = (e.currentTarget as HTMLElement).closest('.registro-card')
-                document.querySelectorAll('.registro-card.print-target').forEach(el => el.classList.remove('print-target'))
-                alvo?.classList.add('print-target')
-                document.body.classList.add('printing-single')
-                window.print()
-              }}
-              className="no-print flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-colors">
-              <Printer size={11} /> Imprimir este registro
-            </button>
+            <div className="no-print flex items-center gap-4">
+              <button
+                onClick={e => {
+                  const alvo = (e.currentTarget as HTMLElement).closest('.registro-card')
+                  document.querySelectorAll('.registro-card.print-target').forEach(el => el.classList.remove('print-target'))
+                  alvo?.classList.add('print-target')
+                  document.body.classList.add('printing-single')
+                  window.print()
+                }}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-slate-700 transition-colors">
+                <Printer size={11} /> Imprimir este registro
+              </button>
+              <button
+                onClick={() => onDelete(card.id)}
+                className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400 hover:text-red-600 transition-colors">
+                <Trash2 size={11} /> Excluir registro
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -492,6 +500,14 @@ export default function Formulario() {
 
   const handleCardUpdate = useCallback((updated: KanbanCard) => {
     setCards(p => p.map(c => c.id === updated.id ? updated : c))
+  }, [])
+
+  const handleCardDelete = useCallback((id: string) => {
+    const alvo = [...getCards(), ...getArquivados()].find(c => c.id === id)
+    const nome = alvo?.nome || 'este registro'
+    if (!window.confirm(`Excluir definitivamente "${nome}"?\n\nEsta ação não pode ser desfeita.`)) return
+    storeDeleteCard(id)
+    setCards(p => p.filter(c => c.id !== id))
   }, [])
 
   const ativos     = cards.filter(c => !c.arquivado).length
@@ -615,6 +631,7 @@ export default function Formulario() {
                   index={i + 1}
                   forceOpen={expandirTodos}
                   onCardUpdate={handleCardUpdate}
+                  onDelete={handleCardDelete}
                 />
               ))}
             </div>
