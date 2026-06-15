@@ -90,20 +90,8 @@ function blankBriefing(): KanbanCard['briefing'] {
 }
 
 function loadCards(): KanbanCard[] {
-  const stored = getCards()
-  if (stored.length > 0) return stored
-  // Seed default cards on first load
-  const base: KanbanCard[] = [
-    { id: '1', nome: 'Dashboard Comercial',    responsavel: 'Ana Lima',     solicitante: '', dataEntrada: '2026-06-01', prazo: '2026-06-20', prioridade: 'Alta',  coluna: 'desenvolvimento', observacoes: 'Foco em meta vs realizado por vendedor', tags: ['Vendas','Urgente'], dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-    { id: '2', nome: 'Dashboard Financeiro',   responsavel: 'Carlos Melo',  solicitante: '', dataEntrada: '2026-05-28', prazo: '2026-06-15', prioridade: 'Alta',  coluna: 'revisao',          observacoes: '', tags: ['DRE'],           dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-    { id: '3', nome: 'Dashboard de RH',        responsavel: 'Marina Souza', solicitante: '', dataEntrada: '2026-06-05', prazo: '2026-06-30', prioridade: 'Média', coluna: 'analise',          observacoes: 'Incluir turnover e absenteísmo', tags: ['RH'], dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-    { id: '4', nome: 'Dashboard de Operações', responsavel: 'João Silva',   solicitante: '', dataEntrada: '2026-06-07', prazo: '2026-07-10', prioridade: 'Baixa', coluna: 'entrada',          observacoes: '', tags: [],               dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-    { id: '5', nome: 'Dashboard Executivo',    responsavel: 'Filipe',       solicitante: '', dataEntrada: '2026-05-10', prazo: '2026-05-30', prioridade: 'Alta',  coluna: 'concluido',        observacoes: 'Entregue na data combinada', tags: ['Exec'], dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-    { id: '6', nome: 'Dashboard de Estoque',   responsavel: 'Bia Alves',    solicitante: '', dataEntrada: '2026-06-08', prazo: '2026-07-05', prioridade: 'Média', coluna: 'entrada',          observacoes: '', tags: [],               dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-    { id: '7', nome: 'Dashboard de Suporte',   responsavel: 'Carlos Melo',  solicitante: '', dataEntrada: '2026-06-09', prazo: '2026-07-20', prioridade: 'Baixa', coluna: 'analise',          observacoes: '', tags: ['Suporte'],       dataAnalise: '', dataDesenvolvimento: '', dataRevisao: '', dataConcluido: '', dataArquivamento: '', arquivado: false, briefing: blankBriefing() },
-  ]
-  base.forEach(c => storeSaveCard(c))
-  return base
+  // Sem seed: o board começa vazio e é preenchido com cards reais
+  return getCards()
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

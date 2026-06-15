@@ -4,9 +4,9 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
 import App from './App.tsx'
 import './index.css'
-import { initSeedCards } from './data/seedKanban'
+import { purgeSeedCards } from './data/seedKanban'
 
-initSeedCards()
+purgeSeedCards()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
