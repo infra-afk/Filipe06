@@ -1,0 +1,13 @@
+# Garante quebras de linha corretas independente do SO de quem clona.
+# Scripts Linux e arquivos Docker DEVEM usar LF (CRLF quebra no Linux).
+*.sh            text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.sql           text eol=lf
+*.conf          text eol=lf
+Dockerfile      text eol=lf
+**/Dockerfile   text eol=lf
+
+# Scripts do Windows usam CRLF
+*.bat           text eol=crlf
+*.cmd           text eol=crlf
