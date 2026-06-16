@@ -18,7 +18,7 @@ app.use(cors({ origin: process.env.FRONTEND_URL || 'http://localhost:5173' }))
 app.use(express.json())
 
 // ── Servir arquivos de upload estáticos ──────────────────────────────────────
-const UPLOADS_DIR = '/home/srv_app/dashboard/uploads'
+const UPLOADS_DIR = process.env.UPLOADS_DIR || '/home/srv_app/dashboard/uploads'
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true })
 app.use('/uploads', express.static(UPLOADS_DIR))
 

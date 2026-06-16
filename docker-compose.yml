@@ -1,0 +1,60 @@
+# ════════════════════════════════════════════════════════════════════════════
+#  CHUÁ — Solicitações de Dashboard
+#  Sobe TUDO (banco + API + site) com um comando:
+#      docker compose up -d --build
+#  Depois acesse:  http://localhost:8080
+#  Login inicial:  adm@chua.local  /  admin123
+# ════════════════════════════════════════════════════════════════════════════
+services:
+
+  db:
+    image: postgres:17-alpine
+    container_name: chua-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dashboard_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Chua2026Secure}
+      POSTGRES_DB: dashboard_db
+    volumes:
+      - chua_dbdata:/var/lib/postgresql/data
+      # Scripts em ./docker/initdb rodam UMA vez, quando o banco é criado
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dashboard_user -d dashboard_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: chua-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://dashboard_user:${DB_PASSWORD:-Chua2026Secure}@db:5432/dashboard_db
+      JWT_SECRET: ${JWT_SECRET:-troque_este_segredo_em_producao}
+      JWT_EXPIRES_IN: 7d
+      PORT: 3001
+      UPLOADS_DIR: /app/uploads
+      NODE_ENV: production
+    volumes:
+      - chua_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: chua-web
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    depends_on:
+      - api
+
+volumes:
+  chua_dbdata:
+  chua_uploads:
